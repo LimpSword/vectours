@@ -1,11 +1,12 @@
-package fr.alexandredch.vectours;
+package fr.alexandredch.vectours.store;
 
 import fr.alexandredch.vectours.data.SearchResult;
 import fr.alexandredch.vectours.data.Vector;
 
 import java.util.List;
 
-public interface Vectours {
+public interface Store {
+
 
     void insert(String id, Vector vector);
 
@@ -14,4 +15,6 @@ public interface Vectours {
     void delete(String id);
 
     Vector getVector(String id);
+
+    void dropAll();
 }
