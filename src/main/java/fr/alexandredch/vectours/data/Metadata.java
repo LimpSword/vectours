@@ -1,4 +1,7 @@
 package fr.alexandredch.vectours.data;
 
-public final class Metadata {
+import java.util.Map;
+
+public record Metadata(Map<String, Object> metadata) {
+
 }
