@@ -7,6 +7,8 @@ import java.util.List;
 
 public interface Store {
 
+    void initFromDisk();
+
     void insert(String id, Vector vector);
 
     List<SearchResult> search(float[] vector, int k);
@@ -16,4 +18,6 @@ public interface Store {
     Vector getVector(String id);
 
     void dropAll();
+
+    void save();
 }

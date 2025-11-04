@@ -82,6 +82,29 @@ class InMemoryStoreTest {
         assertEquals(vector.getMetadata(), retrievedVector.getMetadata());
     }
 
+    @Test
+    void initAndSave() {
+        insertVector(VECTOR_1);
+        insertVector(VECTOR_2);
+
+        fixture.save();
+
+        InMemoryStore newStore = new InMemoryStore();
+        newStore.initFromDisk();
+
+        var retrievedVector1 = newStore.getVector(VECTOR_ID_1);
+        assertNotNull(retrievedVector1);
+        assertEquals(VECTOR_ID_1, retrievedVector1.getId());
+        assertArrayEquals(VECTOR_1.getValues(), retrievedVector1.getValues());
+        assertEquals(VECTOR_1.getMetadata(), retrievedVector1.getMetadata());
+
+        var retrievedVector2 = newStore.getVector(VECTOR_ID_2);
+        assertNotNull(retrievedVector2);
+        assertEquals(VECTOR_ID_2, retrievedVector2.getId());
+        assertArrayEquals(VECTOR_2.getValues(), retrievedVector2.getValues());
+        assertEquals(VECTOR_2.getMetadata(), retrievedVector2.getMetadata());
+    }
+
     private void insertVector(Vector vector) {
         fixture.insert(vector.getId(), vector);
     }

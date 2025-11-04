@@ -1,6 +1,8 @@
 package fr.alexandredch.vectours.data;
 
-public final class Vector {
+import java.io.Serializable;
+
+public final class Vector implements Serializable {
 
     private final String id;
     private final float[] values;
