@@ -1,10 +1,10 @@
-package fr.alexandredch.vectours.store;
+package fr.alexandredch.vectours.store.base;
 
 import fr.alexandredch.vectours.data.SearchResult;
 import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.math.Vectors;
 import fr.alexandredch.vectours.serialization.InMemorySerializer;
-
+import fr.alexandredch.vectours.store.Store;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,6 +18,7 @@ public final class InMemoryStore implements Store {
     public static final String STORE_FILE_NAME = "vectours_store.dat";
 
     private final Map<String, Vector> store = new ConcurrentHashMap<>();
+    private final WriteAheadLogger writeAheadLogger = new WriteAheadLogger();
 
     @Override
     public void initFromDisk() {
@@ -48,10 +49,7 @@ public final class InMemoryStore implements Store {
         return map.entrySet().stream()
                 .limit(k)
                 .map(e -> new SearchResult(
-                        e.getValue().getId(),
-                        e.getKey(),
-                        e.getValue().getMetadata()
-                ))
+                        e.getValue().getId(), e.getKey(), e.getValue().getMetadata()))
                 .toList();
     }
 
