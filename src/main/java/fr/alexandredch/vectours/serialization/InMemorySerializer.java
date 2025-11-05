@@ -1,7 +1,6 @@
 package fr.alexandredch.vectours.serialization;
 
 import fr.alexandredch.vectours.data.Vector;
-
 import java.io.*;
 import java.util.Map;
 

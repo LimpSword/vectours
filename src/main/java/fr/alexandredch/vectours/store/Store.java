@@ -2,7 +2,6 @@ package fr.alexandredch.vectours.store;
 
 import fr.alexandredch.vectours.data.SearchResult;
 import fr.alexandredch.vectours.data.Vector;
-
 import java.util.List;
 
 public interface Store {

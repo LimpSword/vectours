@@ -1,11 +1,10 @@
 package fr.alexandredch.vectours;
 
 import fr.alexandredch.vectours.data.Vector;
-import fr.alexandredch.vectours.store.InMemoryStore;
+import fr.alexandredch.vectours.store.base.InMemoryStore;
+import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
-
-import java.util.concurrent.TimeUnit;
 
 @State(Scope.Benchmark)
 public class InMemoryStoreBenchmark {
@@ -19,7 +18,8 @@ public class InMemoryStoreBenchmark {
         public void setUp() {
             store = new InMemoryStore();
             for (int i = 0; i < 100000; i++) {
-                store.insert("id" + i, new Vector("id" + i, new float[]{(float) i, (float) i + 1, (float) i + 2}, null));
+                store.insert(
+                        "id" + i, new Vector("id" + i, new float[] {(float) i, (float) i + 1, (float) i + 2}, null));
             }
         }
     }
@@ -33,7 +33,8 @@ public class InMemoryStoreBenchmark {
         public void setUp() {
             store = new InMemoryStore();
             for (int i = 0; i < 100000; i++) {
-                store.insert("id" + i, new Vector("id" + i, new float[]{(float) i, (float) i + 1, (float) i + 2}, null));
+                store.insert(
+                        "id" + i, new Vector("id" + i, new float[] {(float) i, (float) i + 1, (float) i + 2}, null));
             }
             store.save();
             store = null;
@@ -51,7 +52,8 @@ public class InMemoryStoreBenchmark {
         public void setUp() {
             store = new InMemoryStore();
             for (int i = 0; i < 100000; i++) {
-                store.insert("id" + i, new Vector("id" + i, new float[]{(float) i, (float) i + 1, (float) i + 2}, null));
+                store.insert(
+                        "id" + i, new Vector("id" + i, new float[] {(float) i, (float) i + 1, (float) i + 2}, null));
             }
         }
     }
@@ -61,7 +63,7 @@ public class InMemoryStoreBenchmark {
     @Fork(value = 1, warmups = 1)
     @BenchmarkMode(Mode.AverageTime)
     public void search(SearchState state, Blackhole blackhole) {
-        blackhole.consume(state.store.search(new float[]{5000f, 5001f, 5002f}, 30));
+        blackhole.consume(state.store.search(new float[] {5000f, 5001f, 5002f}, 30));
     }
 
     @Benchmark
