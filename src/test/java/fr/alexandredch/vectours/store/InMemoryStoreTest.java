@@ -34,9 +34,9 @@ class InMemoryStoreTest {
 
         var retrievedVector = fixture.getVector(id);
         assertNotNull(retrievedVector);
-        assertEquals(id, retrievedVector.getId());
-        assertArrayEquals(vector.getValues(), retrievedVector.getValues());
-        assertEquals(vector.getMetadata(), retrievedVector.getMetadata());
+        assertEquals(id, retrievedVector.id());
+        assertArrayEquals(vector.values(), retrievedVector.values());
+        assertEquals(vector.metadata(), retrievedVector.metadata());
     }
 
     @Test
@@ -77,9 +77,9 @@ class InMemoryStoreTest {
 
         var retrievedVector = fixture.getVector(id);
         assertNotNull(retrievedVector);
-        assertEquals(id, retrievedVector.getId());
-        assertArrayEquals(vector.getValues(), retrievedVector.getValues());
-        assertEquals(vector.getMetadata(), retrievedVector.getMetadata());
+        assertEquals(id, retrievedVector.id());
+        assertArrayEquals(vector.values(), retrievedVector.values());
+        assertEquals(vector.metadata(), retrievedVector.metadata());
     }
 
     @Test
@@ -94,19 +94,19 @@ class InMemoryStoreTest {
 
         var retrievedVector1 = newStore.getVector(VECTOR_ID_1);
         assertNotNull(retrievedVector1);
-        assertEquals(VECTOR_ID_1, retrievedVector1.getId());
-        assertArrayEquals(VECTOR_1.getValues(), retrievedVector1.getValues());
-        assertEquals(VECTOR_1.getMetadata(), retrievedVector1.getMetadata());
+        assertEquals(VECTOR_ID_1, retrievedVector1.id());
+        assertArrayEquals(VECTOR_1.values(), retrievedVector1.values());
+        assertEquals(VECTOR_1.metadata(), retrievedVector1.metadata());
 
         var retrievedVector2 = newStore.getVector(VECTOR_ID_2);
         assertNotNull(retrievedVector2);
-        assertEquals(VECTOR_ID_2, retrievedVector2.getId());
-        assertArrayEquals(VECTOR_2.getValues(), retrievedVector2.getValues());
-        assertEquals(VECTOR_2.getMetadata(), retrievedVector2.getMetadata());
+        assertEquals(VECTOR_ID_2, retrievedVector2.id());
+        assertArrayEquals(VECTOR_2.values(), retrievedVector2.values());
+        assertEquals(VECTOR_2.metadata(), retrievedVector2.metadata());
     }
 
     private void insertVector(Vector vector) {
-        fixture.insert(vector.getId(), vector);
+        fixture.insert(vector.id(), vector);
     }
 
     private static Stream<Arguments> provideVectors() {
