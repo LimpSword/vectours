@@ -27,4 +27,20 @@ public sealed interface Operation permits Operation.Insert, Operation.Delete {
                     .array();
         }
     }
+
+    static Operation fromBytes(byte[] bytes) {
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
+        int idLength = buffer.getInt();
+        byte[] idBytes = new byte[idLength];
+        buffer.get(idBytes);
+        String id = new String(idBytes);
+        if (buffer.hasRemaining()) {
+            int vectorLength = buffer.getInt();
+            byte[] vectorBytes = new byte[vectorLength];
+            buffer.get(vectorBytes);
+            return new Insert(id, vectorBytes);
+        } else {
+            return new Delete(id);
+        }
+    }
 }

@@ -1,6 +1,7 @@
 package fr.alexandredch.vectours.store.background;
 
 import fr.alexandredch.vectours.store.base.Segment;
+import fr.alexandredch.vectours.store.base.SegmentStore;
 import fr.alexandredch.vectours.store.base.WriteAheadLogger;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -8,11 +9,13 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public final class SegmentSaverTask implements Runnable {
 
     private final WriteAheadLogger writeAheadLogger;
+    private final SegmentStore segmentStore;
 
     private final Queue<Segment> queue = new ConcurrentLinkedQueue<>();
 
-    public SegmentSaverTask(WriteAheadLogger writeAheadLogger) {
+    public SegmentSaverTask(WriteAheadLogger writeAheadLogger, SegmentStore segmentStore) {
         this.writeAheadLogger = writeAheadLogger;
+        this.segmentStore = segmentStore;
     }
 
     public void submitSegment(Segment segment) {
@@ -24,7 +27,7 @@ public final class SegmentSaverTask implements Runnable {
         Segment segment = queue.poll();
         if (segment != null) {
             // Save segment to disk
-            saveSegmentToDisk(segment);
+            segmentStore.saveSegmentToDisk(segment);
 
             // Close segment after saving
             segment.close();
@@ -33,6 +36,4 @@ public final class SegmentSaverTask implements Runnable {
             writeAheadLogger.markLastCheckpoint(segment);
         }
     }
-
-    private void saveSegmentToDisk(Segment segment) {}
 }

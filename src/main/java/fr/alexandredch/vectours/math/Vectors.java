@@ -2,7 +2,7 @@ package fr.alexandredch.vectours.math;
 
 public class Vectors {
 
-    public static double euclideanDistance(float[] values1, float[] values2) {
+    public static double euclideanDistance(double[] values1, double[] values2) {
         if (values1.length != values2.length) {
             throw new IllegalArgumentException("Vectors must have the same length");
         }

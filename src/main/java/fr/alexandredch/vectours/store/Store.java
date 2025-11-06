@@ -10,7 +10,7 @@ public interface Store {
 
     void insert(String id, Vector vector);
 
-    List<SearchResult> search(float[] vector, int k);
+    List<SearchResult> search(double[] vector, int k);
 
     void delete(String id);
 

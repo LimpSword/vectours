@@ -1,88 +1,82 @@
 package fr.alexandredch.vectours.store.base;
 
+import fr.alexandredch.vectours.data.Metadata;
 import fr.alexandredch.vectours.data.SearchResult;
 import fr.alexandredch.vectours.data.Vector;
+import fr.alexandredch.vectours.math.Vectors;
 import fr.alexandredch.vectours.operations.Operation;
 import fr.alexandredch.vectours.serialization.InMemorySerializer;
 import fr.alexandredch.vectours.store.Store;
-import fr.alexandredch.vectours.store.background.SegmentSaverTask;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
+import java.util.TreeMap;
 
 public final class InMemoryStore implements Store {
 
-    private static final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
-
     private final WriteAheadLogger writeAheadLogger;
-    private final SegmentSaverTask segmentSaverTask;
-
-    private final List<Segment> segments = new ArrayList<>();
-
-    private Segment currentSegment;
+    private final SegmentStore segmentStore;
 
     public InMemoryStore() {
         writeAheadLogger = new WriteAheadLogger();
-        segmentSaverTask = new SegmentSaverTask(writeAheadLogger);
-
+        segmentStore = new SegmentStore(writeAheadLogger);
         // TODO: Recover non-saved segments from WAL
-        currentSegment = new Segment(writeAheadLogger.getLatestSegmentIdIncludingUnclosed() + 1);
-
-        scheduledExecutorService.scheduleAtFixedRate(segmentSaverTask, 0, 30, TimeUnit.SECONDS);
     }
 
     @Override
     public void initFromDisk() {
         // Read all segments from disk
+        segmentStore.loadFromDisk();
 
         // Replay WAL from last checkpoint
+        List<Operation> operations = writeAheadLogger.loadFromCheckpoint();
+        for (Operation operation : operations) {
+            switch (operation) {
+                // TODO: we should have a single method to apply operations to avoid code duplication
+                case Operation.Insert insert -> {
+                    try {
+                        double[] values = InMemorySerializer.deserialize(insert.vectorBytes());
+                        // TODO: handle metadata
+                        Vector vector = new Vector(insert.id(), values, new Metadata(Map.of()));
+                        segmentStore.insertVector(vector);
+                    } catch (IOException | ClassNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                case Operation.Delete delete -> {
+                    segmentStore.deleteVector(delete.id());
+                }
+            }
+        }
     }
 
     @Override
     public void insert(String id, Vector vector) {
-        if (currentSegment.isFull()) {
-            segments.add(currentSegment);
-
-            int newSegmentId = currentSegment.getId() + 1;
-
-            // Submit segment to background saver
-            segmentSaverTask.submitSegment(currentSegment);
-
-            // Create new segment and log it
-            currentSegment = new Segment(newSegmentId);
-            writeAheadLogger.newSegment(currentSegment);
-        }
         try {
             // Append to WAL
             byte[] segmentData = InMemorySerializer.serialize(vector.values());
             writeAheadLogger.applyOperation(new Operation.Insert(id, segmentData));
 
             // Add to segment
-            currentSegment.insert(vector);
+            segmentStore.insertVector(vector);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     @Override
-    public List<SearchResult> search(float[] vector, int k) {
-        // TODO: Search in all segments and merge results
-
-        /*TreeMap<Double, Vector> map = new TreeMap<>();
-        for (Map.Entry<String, Vector> entry : store.entrySet()) {
-            double distance = Vectors.euclideanDistance(vector, entry.getValue().values());
-            map.put(distance, entry.getValue());
+    public List<SearchResult> search(double[] searchedVector, int k) {
+        TreeMap<Double, Vector> map = new TreeMap<>();
+        for (Vector vector : segmentStore.getAllVectors()) {
+            double distance = Vectors.euclideanDistance(searchedVector, vector.values());
+            map.put(distance, vector);
         }
 
         return map.entrySet().stream()
                 .limit(k)
                 .map(e -> new SearchResult(
                         e.getValue().id(), e.getKey(), e.getValue().metadata()))
-                .toList();*/
-        return List.of();
+                .toList();
     }
 
     @Override
@@ -91,34 +85,17 @@ public final class InMemoryStore implements Store {
         writeAheadLogger.applyOperation(new Operation.Delete(id));
 
         // Delete from its segment
-        for (Segment segment : segments) {
-            if (segment.containsId(id)) {
-                segment.delete(id);
-                return;
-            }
-        }
-        if (currentSegment.containsId(id)) {
-            currentSegment.delete(id);
-        }
+        segmentStore.deleteVector(id);
     }
 
     @Override
     public Vector getVector(String id) {
-        for (Segment segment : segments) {
-            if (segment.containsId(id)) {
-                return segment.getVector(id);
-            }
-        }
-        if (currentSegment.containsId(id)) {
-            return currentSegment.getVector(id);
-        }
-        return null;
+        return segmentStore.getVectorById(id);
     }
 
     @Override
     public void dropAll() {
-        segments.clear();
-        currentSegment = new Segment(0);
+        segmentStore.close();
         writeAheadLogger.clearLog();
     }
 }

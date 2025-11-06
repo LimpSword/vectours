@@ -15,7 +15,38 @@ public final class WriteAheadLogger {
 
     public List<Operation> loadFromCheckpoint() {
         // Read from the last checkpoint and return the list of operations
-        return List.of();
+        int lastCheckpointedSegmentId = getLastCheckpointedSegmentId();
+        Path path = Paths.get(LOG_FILE_NAME);
+        if (!Files.exists(path)) {
+            return List.of();
+        }
+        try {
+            List<String> lines = Files.readAllLines(path);
+            List<Operation> operations = new java.util.ArrayList<>();
+            boolean startCollecting = lastCheckpointedSegmentId == -1;
+            for (String line : lines) {
+                if (!startCollecting) {
+                    try {
+                        int segmentId = Integer.parseInt(line);
+                        if (segmentId == lastCheckpointedSegmentId) {
+                            startCollecting = true;
+                        }
+                    } catch (NumberFormatException e) {
+                        // Ignore non-segment id lines
+                    }
+                } else {
+                    try {
+                        Operation operation = Operation.fromBytes(line.getBytes());
+                        operations.add(operation);
+                    } catch (Exception e) {
+                        // Ignore invalid operation lines
+                    }
+                }
+            }
+            return operations;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read WAL log", e);
+        }
     }
 
     public void newSegment(Segment segment) {
@@ -25,6 +56,19 @@ public final class WriteAheadLogger {
 
     public void applyOperation(Operation operation) {
         appendToLog(operation.toBytes());
+    }
+
+    public int getLastCheckpointedSegmentId() {
+        Path path = Paths.get(CHECKPOINT_FILE_NAME);
+        if (!Files.exists(path)) {
+            return -1;
+        }
+        try {
+            String content = Files.readString(path);
+            return Integer.parseInt(content);
+        } catch (IOException | NumberFormatException e) {
+            throw new RuntimeException("Failed to read WAL checkpoint", e);
+        }
     }
 
     public void markLastCheckpoint(Segment segment) {
