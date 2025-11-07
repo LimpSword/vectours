@@ -2,7 +2,7 @@ package fr.alexandredch.vectours.operations;
 
 import java.nio.ByteBuffer;
 
-public sealed interface Operation permits Operation.Insert, Operation.Delete {
+public sealed interface Operation permits Operation.Delete, Operation.Insert {
 
     byte[] toBytes();
 
@@ -34,13 +34,15 @@ public sealed interface Operation permits Operation.Insert, Operation.Delete {
         byte[] idBytes = new byte[idLength];
         buffer.get(idBytes);
         String id = new String(idBytes);
-        if (buffer.hasRemaining()) {
-            int vectorLength = buffer.getInt();
-            byte[] vectorBytes = new byte[vectorLength];
+        if (buffer.remaining() == 0) {
+            return new Delete(id);
+        } else if (buffer.remaining() >= 4) {
+            int vectorBytesLength = buffer.getInt();
+            byte[] vectorBytes = new byte[vectorBytesLength];
             buffer.get(vectorBytes);
             return new Insert(id, vectorBytes);
         } else {
-            return new Delete(id);
+            throw new IllegalArgumentException("Invalid operation bytes");
         }
     }
 }

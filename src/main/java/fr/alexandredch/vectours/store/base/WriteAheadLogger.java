@@ -1,11 +1,13 @@
 package fr.alexandredch.vectours.store.base;
 
 import fr.alexandredch.vectours.operations.Operation;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
 import java.util.List;
 
 public final class WriteAheadLogger {
@@ -22,12 +24,14 @@ public final class WriteAheadLogger {
         }
         try {
             List<String> lines = Files.readAllLines(path);
-            List<Operation> operations = new java.util.ArrayList<>();
+            List<Operation> operations = new ArrayList<>();
             boolean startCollecting = lastCheckpointedSegmentId == -1;
             for (String line : lines) {
+                System.out.println(line);
                 if (!startCollecting) {
                     try {
                         int segmentId = Integer.parseInt(line);
+                        // TODO: go to next segment after checkpoint
                         if (segmentId == lastCheckpointedSegmentId) {
                             startCollecting = true;
                         }
@@ -51,11 +55,23 @@ public final class WriteAheadLogger {
 
     public void newSegment(Segment segment) {
         // Add the segment id to the log
-        appendToLog(Integer.toString(segment.getId()).getBytes());
+        Path path = Paths.get(LOG_FILE_NAME);
+        try {
+            Files.write(path, List.of(Integer.toString(segment.getId())), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to write to WAL log", e);
+        }
     }
 
     public void applyOperation(Operation operation) {
-        appendToLog(operation.toBytes());
+        // Add the segment id to the log
+        Path path = Paths.get(LOG_FILE_NAME);
+        try {
+            Files.write(path, operation.toBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            Files.write(path, List.of("\n"), StandardOpenOption.APPEND);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to write to WAL log", e);
+        }
     }
 
     public int getLastCheckpointedSegmentId() {
@@ -64,7 +80,7 @@ public final class WriteAheadLogger {
             return -1;
         }
         try {
-            String content = Files.readString(path);
+            String content = Files.readString(path).trim();
             return Integer.parseInt(content);
         } catch (IOException | NumberFormatException e) {
             throw new RuntimeException("Failed to read WAL checkpoint", e);
@@ -77,7 +93,7 @@ public final class WriteAheadLogger {
         try {
             Files.write(
                     path,
-                    Integer.toString(segment.getId()).getBytes(),
+                    List.of(Integer.toString(segment.getId())),
                     StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING);
         } catch (IOException e) {
@@ -110,20 +126,13 @@ public final class WriteAheadLogger {
     }
 
     public void clearLog() {
-        Path path = Paths.get(LOG_FILE_NAME);
+        Path logFilePath = Paths.get(LOG_FILE_NAME);
+        Path checkpointFilePath = Paths.get(CHECKPOINT_FILE_NAME);
         try {
-            Files.deleteIfExists(path);
+            Files.deleteIfExists(logFilePath);
+            Files.deleteIfExists(checkpointFilePath);
         } catch (IOException e) {
             throw new RuntimeException("Failed to clear WAL log", e);
-        }
-    }
-
-    private void appendToLog(byte[] data) {
-        Path path = Paths.get(LOG_FILE_NAME);
-        try {
-            Files.write(path, data, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to write to WAL log", e);
         }
     }
 }

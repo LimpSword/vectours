@@ -1,7 +1,6 @@
-package fr.alexandredch.vectours.store;
+package fr.alexandredch.vectours.store.base;
 
 import fr.alexandredch.vectours.data.Vector;
-import fr.alexandredch.vectours.store.base.InMemoryStore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,7 +23,7 @@ class InMemoryStoreTest {
     private InMemoryStore fixture;
 
     @BeforeEach
-    void beforeEach() {
+    void setUp() {
         System.out.println("1");
         fixture = new InMemoryStore();
         fixture.initFromDisk();
