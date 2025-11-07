@@ -1,6 +1,7 @@
 package fr.alexandredch.vectours.store.base;
 
 import fr.alexandredch.vectours.data.Vector;
+
 import java.util.*;
 
 public final class Segment {
@@ -13,7 +14,7 @@ public final class Segment {
     private final Set<String> ids = new HashSet<>();
     private final Set<String> tombstones = new HashSet<>();
     private final int id;
-    private boolean closed = false;
+    private boolean dirty = false;
 
     public Segment(int segmentId) {
         this.id = segmentId;
@@ -23,6 +24,7 @@ public final class Segment {
         if (isFull()) {
             throw new IllegalStateException("Segment is full");
         }
+        dirty = true;
         vectors.put(vector.id(), vector);
         ids.add(vector.id());
     }
@@ -57,12 +59,13 @@ public final class Segment {
         return id;
     }
 
-    public void close() {
-        closed = true;
+    public Segment setDirty(boolean dirty) {
+        this.dirty = dirty;
+        return this;
     }
 
-    public boolean isClosed() {
-        return closed;
+    public boolean isDirty() {
+        return dirty;
     }
 
     public boolean isFull() {

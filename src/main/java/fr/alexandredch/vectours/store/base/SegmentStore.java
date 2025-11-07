@@ -2,7 +2,6 @@ package fr.alexandredch.vectours.store.base;
 
 import fr.alexandredch.vectours.data.Metadata;
 import fr.alexandredch.vectours.data.Vector;
-import fr.alexandredch.vectours.store.background.SegmentSaverTask;
 
 import java.io.BufferedWriter;
 import java.nio.file.Files;
@@ -11,17 +10,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class SegmentStore {
 
-    private static final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
-
-    private final SegmentSaverTask segmentSaverTask;
     private final WriteAheadLogger writeAheadLogger;
 
     private final List<Segment> segments = new ArrayList<>();
@@ -33,10 +26,12 @@ public final class SegmentStore {
     public SegmentStore(WriteAheadLogger writeAheadLogger) {
         this.writeAheadLogger = writeAheadLogger;
 
-        segmentSaverTask = new SegmentSaverTask(writeAheadLogger, this);
-        currentSegment = new Segment(writeAheadLogger.getLatestSegmentIdIncludingUnclosed() + 1);
 
-        scheduledExecutorService.scheduleAtFixedRate(segmentSaverTask, 0, 30, TimeUnit.SECONDS);
+        currentSegment = new Segment(writeAheadLogger.getLatestSegmentIdIncludingUnclosed() + 1);
+    }
+
+    public List<Segment> getSegments() {
+        return List.copyOf(segments);
     }
 
     public List<Vector> getAllVectors() {
@@ -53,9 +48,6 @@ public final class SegmentStore {
             segments.add(currentSegment);
 
             int newSegmentId = currentSegment.getId() + 1;
-
-            // Submit segment to background saver
-            segmentSaverTask.submitSegment(currentSegment);
 
             // Create new segment and log it
             currentSegment = new Segment(newSegmentId);
@@ -122,8 +114,6 @@ public final class SegmentStore {
     }
 
     public void loadFromDisk() {
-        initialized = true;
-
         // Load all segments from disk
         try {
             Path segmentsDir = Path.of("segments");
@@ -173,11 +163,11 @@ public final class SegmentStore {
         } catch (java.io.IOException e) {
             throw new RuntimeException("Failed to load segments from disk", e);
         }
+
+        initialized = true;
     }
 
     public void close() {
-        scheduledExecutorService.shutdown();
-
         segments.clear();
         currentSegment = null;
     }

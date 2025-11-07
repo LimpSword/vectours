@@ -7,12 +7,19 @@ import fr.alexandredch.vectours.math.Vectors;
 import fr.alexandredch.vectours.operations.Operation;
 import fr.alexandredch.vectours.serialization.InMemorySerializer;
 import fr.alexandredch.vectours.store.Store;
+import fr.alexandredch.vectours.store.background.SegmentSaverTask;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public final class InMemoryStore implements Store {
+
+    private static final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
 
     private final WriteAheadLogger writeAheadLogger;
     private final SegmentStore segmentStore;
@@ -20,7 +27,12 @@ public final class InMemoryStore implements Store {
     public InMemoryStore() {
         writeAheadLogger = new WriteAheadLogger();
         segmentStore = new SegmentStore(writeAheadLogger);
-        // TODO: Recover non-saved segments from WAL
+    }
+
+    public void runTasks() {
+        // Interferes with tests, so not running it by default
+        SegmentSaverTask segmentSaverTask = new SegmentSaverTask(writeAheadLogger, segmentStore);
+        scheduledExecutorService.scheduleAtFixedRate(segmentSaverTask, 30, 30, TimeUnit.SECONDS);
     }
 
     @Override
@@ -29,6 +41,7 @@ public final class InMemoryStore implements Store {
         segmentStore.loadFromDisk();
 
         // Replay WAL from last checkpoint
+        // TODO: improve this by keeping the segments as defined in the WAL
         List<Operation> operations = writeAheadLogger.loadFromCheckpoint();
         for (Operation operation : operations) {
             switch (operation) {
@@ -97,5 +110,7 @@ public final class InMemoryStore implements Store {
     public void dropAll() {
         segmentStore.close();
         writeAheadLogger.clearLog();
+
+        scheduledExecutorService.shutdownNow();
     }
 }

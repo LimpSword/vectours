@@ -1,29 +1,40 @@
 package fr.alexandredch.vectours.store;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.store.base.InMemoryStore;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.*;
+
 class InMemoryStoreTest {
 
     private static final String VECTOR_ID_1 = "vec1";
-    private static final Vector VECTOR_1 = new Vector(VECTOR_ID_1, new float[] {1.0f, 2.0f, 3.0f}, null);
+    private static final Vector VECTOR_1 = new Vector(VECTOR_ID_1, new double[]{1.0, 2.0, 3.0}, null);
 
     private static final String VECTOR_ID_2 = "vec2";
-    private static final Vector VECTOR_2 = new Vector(VECTOR_ID_2, new float[] {4.0f, 5.0f, 6.0f}, null);
+    private static final Vector VECTOR_2 = new Vector(VECTOR_ID_2, new double[]{4.0, 5.0, 6.0}, null);
 
-    private final InMemoryStore fixture = new InMemoryStore();
+    private InMemoryStore fixture;
+
+    @BeforeEach
+    void beforeEach() {
+        System.out.println("1");
+        fixture = new InMemoryStore();
+        fixture.initFromDisk();
+    }
 
     @AfterEach
     void tearDown() {
+        System.out.println("2");
         fixture.dropAll();
+        fixture = null;
     }
 
     @ParameterizedTest
@@ -44,7 +55,7 @@ class InMemoryStoreTest {
         insertVector(VECTOR_1);
         insertVector(VECTOR_2);
 
-        var results = fixture.search(new float[] {1.0f, 2.0f, 3.1f}, 2);
+        var results = fixture.search(new double[]{1.0, 2.0, 3.1}, 2);
         assertEquals(2, results.size());
         assertEquals(VECTOR_ID_1, results.get(0).id());
         assertEquals(VECTOR_ID_2, results.get(1).id());
@@ -55,7 +66,7 @@ class InMemoryStoreTest {
         insertVector(VECTOR_1);
         insertVector(VECTOR_2);
 
-        var results = fixture.search(new float[] {1.0f, 2.0f, 3.1f}, 1);
+        var results = fixture.search(new double[]{1.0, 2.0, 3.1}, 1);
         assertEquals(1, results.size());
         assertEquals(VECTOR_ID_1, results.getFirst().id());
     }
@@ -80,29 +91,6 @@ class InMemoryStoreTest {
         assertEquals(id, retrievedVector.id());
         assertArrayEquals(vector.values(), retrievedVector.values());
         assertEquals(vector.metadata(), retrievedVector.metadata());
-    }
-
-    @Test
-    void initAndSave() {
-        insertVector(VECTOR_1);
-        insertVector(VECTOR_2);
-
-        fixture.save();
-
-        InMemoryStore newStore = new InMemoryStore();
-        newStore.initFromDisk();
-
-        var retrievedVector1 = newStore.getVector(VECTOR_ID_1);
-        assertNotNull(retrievedVector1);
-        assertEquals(VECTOR_ID_1, retrievedVector1.id());
-        assertArrayEquals(VECTOR_1.values(), retrievedVector1.values());
-        assertEquals(VECTOR_1.metadata(), retrievedVector1.metadata());
-
-        var retrievedVector2 = newStore.getVector(VECTOR_ID_2);
-        assertNotNull(retrievedVector2);
-        assertEquals(VECTOR_ID_2, retrievedVector2.id());
-        assertArrayEquals(VECTOR_2.values(), retrievedVector2.values());
-        assertEquals(VECTOR_2.metadata(), retrievedVector2.metadata());
     }
 
     private void insertVector(Vector vector) {

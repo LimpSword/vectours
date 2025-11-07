@@ -91,23 +91,19 @@ public final class WriteAheadLogger {
             return -1;
         }
         try {
-            try {
-                List<String> lines = Files.readAllLines(path);
-                int maxId = -1;
-                for (String line : lines) {
-                    try {
-                        int segmentId = Integer.parseInt(line);
-                        if (segmentId > maxId) {
-                            maxId = segmentId;
-                        }
-                    } catch (NumberFormatException e) {
-                        // Ignore non-segment id lines
+            List<String> lines = Files.readAllLines(path);
+            int maxId = -1;
+            for (String line : lines) {
+                try {
+                    int segmentId = Integer.parseInt(line);
+                    if (segmentId > maxId) {
+                        maxId = segmentId;
                     }
+                } catch (NumberFormatException e) {
+                    // Ignore non-segment id lines
                 }
-                return maxId;
-            } catch (IOException e) {
-                throw new RuntimeException(e);
             }
+            return maxId;
         } catch (Exception e) {
             throw new RuntimeException("Failed to read WAL log", e);
         }
