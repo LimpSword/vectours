@@ -26,14 +26,16 @@ public final class WriteAheadLogger {
             List<String> lines = Files.readAllLines(path);
             List<Operation> operations = new ArrayList<>();
             boolean startCollecting = lastCheckpointedSegmentId == -1;
+            boolean next = false;
             for (String line : lines) {
-                System.out.println(line);
                 if (!startCollecting) {
                     try {
                         int segmentId = Integer.parseInt(line);
-                        // TODO: go to next segment after checkpoint
-                        if (segmentId == lastCheckpointedSegmentId) {
+                        if (next) {
                             startCollecting = true;
+                        }
+                        if (segmentId == lastCheckpointedSegmentId) {
+                            next = true;
                         }
                     } catch (NumberFormatException e) {
                         // Ignore non-segment id lines

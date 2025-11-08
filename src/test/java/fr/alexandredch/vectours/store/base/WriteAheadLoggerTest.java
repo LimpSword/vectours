@@ -43,6 +43,8 @@ public class WriteAheadLoggerTest {
     void loadFromCheckpoint_returns_operations_after_checkpointed_segment() throws Exception {
         // Prepare the log file with a segment and some operations
         fixture.newSegment(OLD_SEGMENT);
+        Operation.Delete op0 = new Operation.Delete("0");
+        fixture.applyOperation(op0);
         fixture.markLastCheckpoint(OLD_SEGMENT);
 
         fixture.newSegment(SEGMENT);
