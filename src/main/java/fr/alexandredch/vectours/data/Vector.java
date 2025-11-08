@@ -1,28 +1,12 @@
 package fr.alexandredch.vectours.data;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
-public final class Vector implements Serializable {
+public record Vector(String id, double[] values, Metadata metadata) implements Serializable {
 
-    private final String id;
-    private final float[] values;
-    private final Metadata metadata;
-
-    public Vector(String id, float[] values, Metadata metadata) {
-        this.id = id;
-        this.values = values;
-        this.metadata = metadata;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public float[] getValues() {
-        return values;
-    }
-
-    public Metadata getMetadata() {
-        return metadata;
+    @Override
+    public String toString() {
+        return id() + ":" + Arrays.toString(values());
     }
 }

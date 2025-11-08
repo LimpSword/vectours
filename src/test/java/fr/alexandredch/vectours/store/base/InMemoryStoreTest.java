@@ -1,11 +1,11 @@
-package fr.alexandredch.vectours.store;
+package fr.alexandredch.vectours.store.base;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 import fr.alexandredch.vectours.data.Vector;
-import fr.alexandredch.vectours.store.base.InMemoryStore;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -14,16 +14,23 @@ import org.junit.jupiter.params.provider.MethodSource;
 class InMemoryStoreTest {
 
     private static final String VECTOR_ID_1 = "vec1";
-    private static final Vector VECTOR_1 = new Vector(VECTOR_ID_1, new float[] {1.0f, 2.0f, 3.0f}, null);
+    private static final Vector VECTOR_1 = new Vector(VECTOR_ID_1, new double[] {1.0, 2.0, 3.0}, null);
 
     private static final String VECTOR_ID_2 = "vec2";
-    private static final Vector VECTOR_2 = new Vector(VECTOR_ID_2, new float[] {4.0f, 5.0f, 6.0f}, null);
+    private static final Vector VECTOR_2 = new Vector(VECTOR_ID_2, new double[] {4.0, 5.0, 6.0}, null);
 
-    private final InMemoryStore fixture = new InMemoryStore();
+    private InMemoryStore fixture;
+
+    @BeforeEach
+    void setUp() {
+        fixture = new InMemoryStore();
+        fixture.initFromDisk();
+    }
 
     @AfterEach
     void tearDown() {
         fixture.dropAll();
+        fixture = null;
     }
 
     @ParameterizedTest
@@ -34,9 +41,9 @@ class InMemoryStoreTest {
 
         var retrievedVector = fixture.getVector(id);
         assertNotNull(retrievedVector);
-        assertEquals(id, retrievedVector.getId());
-        assertArrayEquals(vector.getValues(), retrievedVector.getValues());
-        assertEquals(vector.getMetadata(), retrievedVector.getMetadata());
+        assertEquals(id, retrievedVector.id());
+        assertArrayEquals(vector.values(), retrievedVector.values());
+        assertEquals(vector.metadata(), retrievedVector.metadata());
     }
 
     @Test
@@ -44,7 +51,7 @@ class InMemoryStoreTest {
         insertVector(VECTOR_1);
         insertVector(VECTOR_2);
 
-        var results = fixture.search(new float[] {1.0f, 2.0f, 3.1f}, 2);
+        var results = fixture.search(new double[] {1.0, 2.0, 3.1}, 2);
         assertEquals(2, results.size());
         assertEquals(VECTOR_ID_1, results.get(0).id());
         assertEquals(VECTOR_ID_2, results.get(1).id());
@@ -55,7 +62,7 @@ class InMemoryStoreTest {
         insertVector(VECTOR_1);
         insertVector(VECTOR_2);
 
-        var results = fixture.search(new float[] {1.0f, 2.0f, 3.1f}, 1);
+        var results = fixture.search(new double[] {1.0, 2.0, 3.1}, 1);
         assertEquals(1, results.size());
         assertEquals(VECTOR_ID_1, results.getFirst().id());
     }
@@ -77,36 +84,13 @@ class InMemoryStoreTest {
 
         var retrievedVector = fixture.getVector(id);
         assertNotNull(retrievedVector);
-        assertEquals(id, retrievedVector.getId());
-        assertArrayEquals(vector.getValues(), retrievedVector.getValues());
-        assertEquals(vector.getMetadata(), retrievedVector.getMetadata());
-    }
-
-    @Test
-    void initAndSave() {
-        insertVector(VECTOR_1);
-        insertVector(VECTOR_2);
-
-        fixture.save();
-
-        InMemoryStore newStore = new InMemoryStore();
-        newStore.initFromDisk();
-
-        var retrievedVector1 = newStore.getVector(VECTOR_ID_1);
-        assertNotNull(retrievedVector1);
-        assertEquals(VECTOR_ID_1, retrievedVector1.getId());
-        assertArrayEquals(VECTOR_1.getValues(), retrievedVector1.getValues());
-        assertEquals(VECTOR_1.getMetadata(), retrievedVector1.getMetadata());
-
-        var retrievedVector2 = newStore.getVector(VECTOR_ID_2);
-        assertNotNull(retrievedVector2);
-        assertEquals(VECTOR_ID_2, retrievedVector2.getId());
-        assertArrayEquals(VECTOR_2.getValues(), retrievedVector2.getValues());
-        assertEquals(VECTOR_2.getMetadata(), retrievedVector2.getMetadata());
+        assertEquals(id, retrievedVector.id());
+        assertArrayEquals(vector.values(), retrievedVector.values());
+        assertEquals(vector.metadata(), retrievedVector.metadata());
     }
 
     private void insertVector(Vector vector) {
-        fixture.insert(vector.getId(), vector);
+        fixture.insert(vector.id(), vector);
     }
 
     private static Stream<Arguments> provideVectors() {

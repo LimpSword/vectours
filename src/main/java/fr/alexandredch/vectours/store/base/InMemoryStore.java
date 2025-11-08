@@ -1,80 +1,116 @@
 package fr.alexandredch.vectours.store.base;
 
+import fr.alexandredch.vectours.data.Metadata;
 import fr.alexandredch.vectours.data.SearchResult;
 import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.math.Vectors;
+import fr.alexandredch.vectours.operations.Operation;
 import fr.alexandredch.vectours.serialization.InMemorySerializer;
 import fr.alexandredch.vectours.store.Store;
-import java.io.File;
+import fr.alexandredch.vectours.store.background.SegmentSaverTask;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public final class InMemoryStore implements Store {
 
-    public static final String STORE_FILE_NAME = "vectours_store.dat";
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
 
-    private final Map<String, Vector> store = new ConcurrentHashMap<>();
-    private final WriteAheadLogger writeAheadLogger = new WriteAheadLogger();
+    private final WriteAheadLogger writeAheadLogger;
+    private final SegmentStore segmentStore;
+
+    public InMemoryStore() {
+        writeAheadLogger = new WriteAheadLogger();
+        segmentStore = new SegmentStore(writeAheadLogger);
+    }
+
+    public void runTasks() {
+        // Interferes with tests, so not running it by default
+        SegmentSaverTask segmentSaverTask = new SegmentSaverTask(writeAheadLogger, segmentStore);
+        scheduledExecutorService.scheduleAtFixedRate(segmentSaverTask, 0, 30, TimeUnit.SECONDS);
+    }
 
     @Override
     public void initFromDisk() {
-        File file = new File(STORE_FILE_NAME);
-        if (file.exists()) {
-            try {
-                byte[] bytes = Files.readAllBytes(file.toPath());
-                store.putAll(InMemorySerializer.deserialize(bytes));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+        // Read all segments from disk
+        segmentStore.loadFromDisk();
+
+        // Replay WAL from last checkpoint
+        // TODO: improve this by keeping the segments as defined in the WAL
+        List<Operation> operations = writeAheadLogger.loadFromCheckpoint();
+        for (Operation operation : operations) {
+            switch (operation) {
+                // TODO: we should have a single method to apply operations to avoid code duplication
+                case Operation.Insert insert -> {
+                    try {
+                        double[] values = InMemorySerializer.deserialize(insert.vectorBytes());
+                        // TODO: handle metadata
+                        Vector vector = new Vector(insert.id(), values, new Metadata(Map.of()));
+                        segmentStore.insertVector(vector);
+                    } catch (IOException | ClassNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                case Operation.Delete delete -> {
+                    segmentStore.deleteVector(delete.id());
+                }
             }
         }
     }
 
     @Override
     public void insert(String id, Vector vector) {
-        store.put(id, vector);
+        try {
+            // Append to WAL
+            byte[] segmentData = InMemorySerializer.serialize(vector.values());
+            writeAheadLogger.applyOperation(new Operation.Insert(id, segmentData));
+
+            // Add to segment
+            segmentStore.insertVector(vector);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
-    public List<SearchResult> search(float[] vector, int k) {
+    public List<SearchResult> search(double[] searchedVector, int k) {
+        // TODO: move away from TreeMap because it overwrites entries with same distance
         TreeMap<Double, Vector> map = new TreeMap<>();
-        for (Map.Entry<String, Vector> entry : store.entrySet()) {
-            double distance = Vectors.euclideanDistance(vector, entry.getValue().getValues());
-            map.put(distance, entry.getValue());
+        for (Vector vector : segmentStore.getAllVectors()) {
+            double distance = Vectors.euclideanDistance(searchedVector, vector.values());
+            map.put(distance, vector);
         }
 
         return map.entrySet().stream()
                 .limit(k)
                 .map(e -> new SearchResult(
-                        e.getValue().getId(), e.getKey(), e.getValue().getMetadata()))
+                        e.getValue().id(), e.getKey(), e.getValue().metadata()))
                 .toList();
     }
 
     @Override
     public void delete(String id) {
-        store.remove(id);
+        // Append to WAL
+        writeAheadLogger.applyOperation(new Operation.Delete(id));
+
+        // Delete from its segment
+        segmentStore.deleteVector(id);
     }
 
     @Override
     public Vector getVector(String id) {
-        return store.get(id);
+        return segmentStore.getVectorById(id);
     }
 
     @Override
     public void dropAll() {
-        store.clear();
-    }
+        segmentStore.close();
+        writeAheadLogger.clearLog();
 
-    @Override
-    public void save() {
-        try {
-            byte[] data = InMemorySerializer.serialize(store);
-            Files.write(new File(STORE_FILE_NAME).toPath(), data);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        scheduledExecutorService.shutdownNow();
     }
 }
