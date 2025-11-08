@@ -18,6 +18,7 @@ public class InMemoryStoreBenchmark {
         @Setup(Level.Trial)
         public void setUp() {
             store = new InMemoryStore();
+            store.initFromDisk();
             for (int i = 0; i < 100000; i++) {
                 store.insert(
                         "id" + i,
@@ -34,6 +35,7 @@ public class InMemoryStoreBenchmark {
         @Setup(Level.Trial)
         public void setUp() {
             store = new InMemoryStore();
+            store.initFromDisk();
             for (int i = 0; i < 100000; i++) {
                 store.insert(
                         "id" + i,

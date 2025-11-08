@@ -31,6 +31,10 @@ public sealed interface Operation permits Operation.Delete, Operation.Insert {
     static Operation fromBytes(byte[] bytes) {
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
         int idLength = buffer.getInt();
+        if (idLength < 0 || idLength > buffer.remaining()) {
+            throw new IllegalArgumentException(
+                    "Invalid idLength: " + idLength + ", buffer.remaining: " + buffer.remaining());
+        }
         byte[] idBytes = new byte[idLength];
         buffer.get(idBytes);
         String id = new String(idBytes);
@@ -38,6 +42,10 @@ public sealed interface Operation permits Operation.Delete, Operation.Insert {
             return new Delete(id);
         } else if (buffer.remaining() >= 4) {
             int vectorBytesLength = buffer.getInt();
+            if (vectorBytesLength < 0 || vectorBytesLength != buffer.remaining()) {
+                throw new IllegalArgumentException("Invalid vectorBytesLength: " + vectorBytesLength
+                        + ", buffer.remaining: " + buffer.remaining());
+            }
             byte[] vectorBytes = new byte[vectorBytesLength];
             buffer.get(vectorBytes);
             return new Insert(id, vectorBytes);

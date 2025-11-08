@@ -49,7 +49,7 @@ public final class SegmentSaverTaskTest {
 
         fixture.run();
 
-        assertThat(!dirtySegment.isDirty()).isTrue();
+        assertThat(dirtySegment.isDirty()).isFalse();
     }
 
     @Test

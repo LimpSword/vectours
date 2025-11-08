@@ -119,15 +119,15 @@ public final class SegmentStore {
     public void loadFromDisk() {
         // Load all segments from disk
         try {
-            Path segmentsDir = Path.of("segments");
+            Path segmentsDir = Path.of(SEGMENTS_DIR);
             if (Files.exists(segmentsDir) && Files.isDirectory(segmentsDir)) {
                 Files.list(segmentsDir).filter(Files::isDirectory).forEach(segmentDir -> {
                     int segmentId =
                             Integer.parseInt(segmentDir.getFileName().toString().split("_")[1]);
                     Segment segment = new Segment(segmentId);
 
-                    Path vectorsPath = segmentDir.resolve("vectors");
-                    Path tombstonesPath = segmentDir.resolve("tombstones");
+                    Path vectorsPath = segmentDir.resolve(VECTORS_FILE);
+                    Path tombstonesPath = segmentDir.resolve(TOMBSTONES_FILE);
 
                     // Load vectors
                     if (Files.exists(vectorsPath)) {
@@ -173,6 +173,7 @@ public final class SegmentStore {
     public void close() {
         segments.clear();
         currentSegment = null;
+        initialized = false;
     }
 
     private void checkInitialized() {

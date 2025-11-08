@@ -14,6 +14,8 @@ public final class WriteAheadLogger {
     public static final String LOG_FILE_NAME = "vectours_wal.log";
     public static final String CHECKPOINT_FILE_NAME = "vectours_wal_checkpoint.dat";
 
+    // TODO: use binary encoding everywhere
+
     public List<Operation> loadFromCheckpoint() {
         // Read from the last checkpoint and return the list of operations
         int lastCheckpointedSegmentId = getLastCheckpointedSegmentId();
@@ -69,7 +71,7 @@ public final class WriteAheadLogger {
     }
 
     public void applyOperation(Operation operation) {
-        // Add the segment id to the log
+        // Add the operation to the log
         Path path = Paths.get(LOG_FILE_NAME);
         try {
             Files.write(path, operation.toBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);

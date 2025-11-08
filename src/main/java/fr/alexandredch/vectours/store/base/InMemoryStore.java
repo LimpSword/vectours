@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 public final class InMemoryStore implements Store {
 
-    private static final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
 
     private final WriteAheadLogger writeAheadLogger;
     private final SegmentStore segmentStore;
@@ -78,6 +78,7 @@ public final class InMemoryStore implements Store {
 
     @Override
     public List<SearchResult> search(double[] searchedVector, int k) {
+        // TODO: move away from TreeMap because it overwrites entries with same distance
         TreeMap<Double, Vector> map = new TreeMap<>();
         for (Vector vector : segmentStore.getAllVectors()) {
             double distance = Vectors.euclideanDistance(searchedVector, vector.values());

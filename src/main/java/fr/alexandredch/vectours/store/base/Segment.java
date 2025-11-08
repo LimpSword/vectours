@@ -29,6 +29,7 @@ public final class Segment {
     }
 
     public void delete(String id) {
+        dirty = true;
         tombstones.add(id);
         ids.remove(id);
     }
@@ -38,12 +39,7 @@ public final class Segment {
     }
 
     public Vector getVector(String id) {
-        for (Vector vector : vectors.values()) {
-            if (vector.id().equals(id)) {
-                return vector;
-            }
-        }
-        return null;
+        return vectors.get(id);
     }
 
     public Collection<Vector> getVectors() {
