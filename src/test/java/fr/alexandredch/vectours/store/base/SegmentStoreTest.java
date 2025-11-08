@@ -1,6 +1,13 @@
 package fr.alexandredch.vectours.store.base;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import fr.alexandredch.vectours.data.Vector;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,22 +15,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Comparator;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
 @ExtendWith(MockitoExtension.class)
 public final class SegmentStoreTest {
 
     private static final String VECTOR_ID_1 = "vec1";
-    private static final Vector VECTOR_1 = new Vector(VECTOR_ID_1, new double[]{1.0, 2.0, 3.0}, null);
+    private static final Vector VECTOR_1 = new Vector(VECTOR_ID_1, new double[] {1.0, 2.0, 3.0}, null);
 
     private static final String VECTOR_ID_2 = "vec2";
-    private static final Vector VECTOR_2 = new Vector(VECTOR_ID_2, new double[]{4.0, 5.0, 6.0}, null);
+    private static final Vector VECTOR_2 = new Vector(VECTOR_ID_2, new double[] {4.0, 5.0, 6.0}, null);
 
     @Mock
     private WriteAheadLogger writeAheadLogger;
@@ -73,7 +72,7 @@ public final class SegmentStoreTest {
         fixture.loadFromDisk();
 
         for (int i = 0; i < Segment.MAX_SEGMENT_SIZE; i++) {
-            fixture.insertVector(new Vector("dummy" + i, new double[]{i}, null));
+            fixture.insertVector(new Vector("dummy" + i, new double[] {i}, null));
         }
 
         fixture.insertVector(VECTOR_1);
@@ -105,7 +104,7 @@ public final class SegmentStoreTest {
         fixture.loadFromDisk();
 
         for (int i = 0; i < Segment.MAX_SEGMENT_SIZE; i++) {
-            fixture.insertVector(new Vector("dummy" + i, new double[]{i}, null));
+            fixture.insertVector(new Vector("dummy" + i, new double[] {i}, null));
         }
         fixture.insertVector(VECTOR_1);
         fixture.insertVector(VECTOR_2);
@@ -137,7 +136,7 @@ public final class SegmentStoreTest {
         fixture.loadFromDisk();
 
         for (int i = 0; i < Segment.MAX_SEGMENT_SIZE; i++) {
-            fixture.insertVector(new Vector("dummy" + i, new double[]{i}, null));
+            fixture.insertVector(new Vector("dummy" + i, new double[] {i}, null));
         }
         fixture.insertVector(VECTOR_1);
 

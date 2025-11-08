@@ -1,7 +1,6 @@
 package fr.alexandredch.vectours.store.base;
 
 import fr.alexandredch.vectours.data.Vector;
-
 import java.util.*;
 
 public final class Segment {

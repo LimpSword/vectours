@@ -2,7 +2,6 @@ package fr.alexandredch.vectours.store.base;
 
 import fr.alexandredch.vectours.data.Metadata;
 import fr.alexandredch.vectours.data.Vector;
-
 import java.io.BufferedWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,13 +30,11 @@ public final class SegmentStore {
     public SegmentStore(WriteAheadLogger writeAheadLogger) {
         this.writeAheadLogger = writeAheadLogger;
 
-
         currentSegment = new Segment(writeAheadLogger.getLatestSegmentIdIncludingUnclosed() + 1);
     }
 
     public List<Segment> getSegments() {
-        return Stream.concat(segments.stream(), Stream.of(currentSegment))
-                .collect(Collectors.toList());
+        return Stream.concat(segments.stream(), Stream.of(currentSegment)).collect(Collectors.toList());
     }
 
     public List<Vector> getAllVectors() {
@@ -101,7 +98,7 @@ public final class SegmentStore {
         }
 
         try (BufferedWriter vectorWriter = Files.newBufferedWriter(vectorsPath);
-             BufferedWriter tombstoneWriter = Files.newBufferedWriter(tombstonesPath)) {
+                BufferedWriter tombstoneWriter = Files.newBufferedWriter(tombstonesPath)) {
 
             for (Vector vector : segment.getVectors()) {
                 // TODO: Save as bytes

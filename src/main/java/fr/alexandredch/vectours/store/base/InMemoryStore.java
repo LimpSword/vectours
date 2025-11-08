@@ -8,7 +8,6 @@ import fr.alexandredch.vectours.operations.Operation;
 import fr.alexandredch.vectours.serialization.InMemorySerializer;
 import fr.alexandredch.vectours.store.Store;
 import fr.alexandredch.vectours.store.background.SegmentSaverTask;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +31,7 @@ public final class InMemoryStore implements Store {
     public void runTasks() {
         // Interferes with tests, so not running it by default
         SegmentSaverTask segmentSaverTask = new SegmentSaverTask(writeAheadLogger, segmentStore);
-        scheduledExecutorService.scheduleAtFixedRate(segmentSaverTask, 30, 30, TimeUnit.SECONDS);
+        scheduledExecutorService.scheduleAtFixedRate(segmentSaverTask, 0, 30, TimeUnit.SECONDS);
     }
 
     @Override

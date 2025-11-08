@@ -1,6 +1,9 @@
 package fr.alexandredch.vectours.store.base;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import fr.alexandredch.vectours.data.Vector;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,17 +11,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 class InMemoryStoreTest {
 
     private static final String VECTOR_ID_1 = "vec1";
-    private static final Vector VECTOR_1 = new Vector(VECTOR_ID_1, new double[]{1.0, 2.0, 3.0}, null);
+    private static final Vector VECTOR_1 = new Vector(VECTOR_ID_1, new double[] {1.0, 2.0, 3.0}, null);
 
     private static final String VECTOR_ID_2 = "vec2";
-    private static final Vector VECTOR_2 = new Vector(VECTOR_ID_2, new double[]{4.0, 5.0, 6.0}, null);
+    private static final Vector VECTOR_2 = new Vector(VECTOR_ID_2, new double[] {4.0, 5.0, 6.0}, null);
 
     private InMemoryStore fixture;
 
@@ -52,7 +51,7 @@ class InMemoryStoreTest {
         insertVector(VECTOR_1);
         insertVector(VECTOR_2);
 
-        var results = fixture.search(new double[]{1.0, 2.0, 3.1}, 2);
+        var results = fixture.search(new double[] {1.0, 2.0, 3.1}, 2);
         assertEquals(2, results.size());
         assertEquals(VECTOR_ID_1, results.get(0).id());
         assertEquals(VECTOR_ID_2, results.get(1).id());
@@ -63,7 +62,7 @@ class InMemoryStoreTest {
         insertVector(VECTOR_1);
         insertVector(VECTOR_2);
 
-        var results = fixture.search(new double[]{1.0, 2.0, 3.1}, 1);
+        var results = fixture.search(new double[] {1.0, 2.0, 3.1}, 1);
         assertEquals(1, results.size());
         assertEquals(VECTOR_ID_1, results.getFirst().id());
     }

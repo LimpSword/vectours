@@ -1,7 +1,6 @@
 package fr.alexandredch.vectours.store.base;
 
 import fr.alexandredch.vectours.operations.Operation;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -59,7 +58,11 @@ public final class WriteAheadLogger {
         // Add the segment id to the log
         Path path = Paths.get(LOG_FILE_NAME);
         try {
-            Files.write(path, List.of(Integer.toString(segment.getId())), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            Files.write(
+                    path,
+                    List.of(Integer.toString(segment.getId())),
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.APPEND);
         } catch (IOException e) {
             throw new RuntimeException("Failed to write to WAL log", e);
         }

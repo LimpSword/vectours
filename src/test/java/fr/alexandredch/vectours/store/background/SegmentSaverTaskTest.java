@@ -1,18 +1,17 @@
 package fr.alexandredch.vectours.store.background;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.Mockito.*;
+
 import fr.alexandredch.vectours.store.base.Segment;
 import fr.alexandredch.vectours.store.base.SegmentStore;
 import fr.alexandredch.vectours.store.base.WriteAheadLogger;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.List;
-
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public final class SegmentSaverTaskTest {
