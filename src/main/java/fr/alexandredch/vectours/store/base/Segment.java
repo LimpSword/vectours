@@ -6,7 +6,7 @@ import java.util.*;
 
 public final class Segment {
 
-    private static final int SEGMENT_SIZE = 1000;
+    public static final int MAX_SEGMENT_SIZE = 1000;
 
     private final Map<String, Vector> vectors = new HashMap<>();
     // TODO: Use a more memory-efficient structure for IDs and bloom filters?
@@ -48,7 +48,13 @@ public final class Segment {
     }
 
     public Collection<Vector> getVectors() {
-        return List.copyOf(vectors.values());
+        List<Vector> vectorList = new ArrayList<>();
+        for (Vector vector : vectors.values()) {
+            if (!tombstones.contains(vector.id())) {
+                vectorList.add(vector);
+            }
+        }
+        return List.copyOf(vectorList);
     }
 
     public Collection<String> getTombstones() {
@@ -69,6 +75,6 @@ public final class Segment {
     }
 
     public boolean isFull() {
-        return vectors.size() >= SEGMENT_SIZE;
+        return vectors.size() >= MAX_SEGMENT_SIZE;
     }
 }

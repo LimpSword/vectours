@@ -24,14 +24,12 @@ class InMemoryStoreTest {
 
     @BeforeEach
     void setUp() {
-        System.out.println("1");
         fixture = new InMemoryStore();
         fixture.initFromDisk();
     }
 
     @AfterEach
     void tearDown() {
-        System.out.println("2");
         fixture.dropAll();
         fixture = null;
     }

@@ -15,6 +15,11 @@ import java.util.stream.Stream;
 
 public final class SegmentStore {
 
+    public static final String SEGMENTS_DIR = "segments";
+    public static final String SEGMENT_FILE_PREFIX = "segment_";
+    public static final String VECTORS_FILE = "vectors";
+    public static final String TOMBSTONES_FILE = "tombstones";
+
     private final WriteAheadLogger writeAheadLogger;
 
     private final List<Segment> segments = new ArrayList<>();
@@ -31,7 +36,8 @@ public final class SegmentStore {
     }
 
     public List<Segment> getSegments() {
-        return List.copyOf(segments);
+        return Stream.concat(segments.stream(), Stream.of(currentSegment))
+                .collect(Collectors.toList());
     }
 
     public List<Vector> getAllVectors() {
@@ -83,9 +89,9 @@ public final class SegmentStore {
     }
 
     public void saveSegmentToDisk(Segment segment) {
-        Path segmentPath = Path.of("segments", "segment_" + segment.getId());
-        Path vectorsPath = segmentPath.resolve("vectors");
-        Path tombstonesPath = segmentPath.resolve("tombstones");
+        Path segmentPath = Path.of(SEGMENTS_DIR, SEGMENT_FILE_PREFIX + segment.getId());
+        Path vectorsPath = segmentPath.resolve(VECTORS_FILE);
+        Path tombstonesPath = segmentPath.resolve(TOMBSTONES_FILE);
 
         try {
             Files.createDirectories(vectorsPath.getParent());
@@ -99,7 +105,7 @@ public final class SegmentStore {
 
             for (Vector vector : segment.getVectors()) {
                 // TODO: Save as bytes
-                vectorWriter.write(vector.id() + ":" + Arrays.toString(vector.values()));
+                vectorWriter.write(vector.toString());
                 vectorWriter.newLine();
             }
 
