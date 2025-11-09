@@ -1,15 +1,17 @@
 package fr.alexandredch.vectours.store.base;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import fr.alexandredch.vectours.data.Vector;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 class InMemoryStoreTest {
 
@@ -65,6 +67,20 @@ class InMemoryStoreTest {
         var results = fixture.search(new double[] {1.0, 2.0, 3.1}, 1);
         assertEquals(1, results.size());
         assertEquals(VECTOR_ID_1, results.getFirst().id());
+    }
+
+    @Test
+    @Disabled
+    void search_multiple_vectors_with_same_distance() {
+        Vector vectorA = new Vector("vecA", new double[] {1.0, 1.0}, null);
+        Vector vectorB = new Vector("vecB", new double[] {1.0, -1.0}, null);
+        insertVector(vectorA);
+        insertVector(vectorB);
+
+        var results = fixture.search(new double[] {0.0, 0.0}, 2);
+        assertEquals(2, results.size());
+        assertTrue(results.stream().anyMatch(r -> r.id().equals("vecA")));
+        assertTrue(results.stream().anyMatch(r -> r.id().equals("vecB")));
     }
 
     @ParameterizedTest
