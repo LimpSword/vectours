@@ -14,7 +14,7 @@ public final class WriteAheadLogger {
     public static final String LOG_FILE_NAME = "vectours_wal.log";
     public static final String CHECKPOINT_FILE_NAME = "vectours_wal_checkpoint.dat";
 
-    // TODO: use binary encoding everywhere
+    public static final byte[] SEPARATOR_BYTES = "\n".getBytes();
 
     public List<Operation> loadFromCheckpoint() {
         // Read from the last checkpoint and return the list of operations
@@ -24,26 +24,40 @@ public final class WriteAheadLogger {
             return List.of();
         }
         try {
-            List<String> lines = Files.readAllLines(path);
+            // Get all bytes separated by new lines
+            List<byte[]> rawLines = new ArrayList<>();
+            List<Byte> currentLine = new ArrayList<>();
+            byte[] allBytes = Files.readAllBytes(path);
+            for (byte b : allBytes) {
+                if (b == '\n') {
+                    byte[] lineBytes = new byte[currentLine.size()];
+                    for (int i = 0; i < currentLine.size(); i++) {
+                        lineBytes[i] = currentLine.get(i);
+                    }
+                    rawLines.add(lineBytes);
+                    currentLine.clear();
+                } else {
+                    currentLine.add(b);
+                }
+            }
             List<Operation> operations = new ArrayList<>();
             boolean startCollecting = lastCheckpointedSegmentId == -1;
             boolean next = false;
-            for (String line : lines) {
+            for (byte[] line : rawLines) {
                 if (!startCollecting) {
                     try {
-                        int segmentId = Integer.parseInt(line);
-                        if (next) {
-                            startCollecting = true;
-                        }
+                        int segmentId = Integer.parseInt(new String(line));
                         if (segmentId == lastCheckpointedSegmentId) {
                             next = true;
+                        } else if (next) {
+                            startCollecting = true;
                         }
                     } catch (NumberFormatException e) {
                         // Ignore non-segment id lines
                     }
                 } else {
                     try {
-                        Operation operation = Operation.fromBytes(line.getBytes());
+                        Operation operation = Operation.fromBytes(line);
                         operations.add(operation);
                     } catch (Exception e) {
                         // Ignore invalid operation lines
@@ -62,9 +76,10 @@ public final class WriteAheadLogger {
         try {
             Files.write(
                     path,
-                    List.of(Integer.toString(segment.getId())),
+                    Integer.toString(segment.getId()).getBytes(),
                     StandardOpenOption.CREATE,
                     StandardOpenOption.APPEND);
+            Files.write(path, SEPARATOR_BYTES, StandardOpenOption.APPEND);
         } catch (IOException e) {
             throw new RuntimeException("Failed to write to WAL log", e);
         }
@@ -74,8 +89,8 @@ public final class WriteAheadLogger {
         // Add the operation to the log
         Path path = Paths.get(LOG_FILE_NAME);
         try {
-            Files.write(path, operation.toBytes(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-            Files.write(path, List.of("\n"), StandardOpenOption.APPEND);
+            Files.write(path, Operation.toBytes(operation), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            Files.write(path, SEPARATOR_BYTES, StandardOpenOption.APPEND);
         } catch (IOException e) {
             throw new RuntimeException("Failed to write to WAL log", e);
         }
@@ -87,7 +102,7 @@ public final class WriteAheadLogger {
             return -1;
         }
         try {
-            String content = Files.readString(path).trim();
+            String content = Files.readString(path);
             return Integer.parseInt(content);
         } catch (IOException | NumberFormatException e) {
             throw new RuntimeException("Failed to read WAL checkpoint", e);
@@ -100,7 +115,7 @@ public final class WriteAheadLogger {
         try {
             Files.write(
                     path,
-                    List.of(Integer.toString(segment.getId())),
+                    Integer.toString(segment.getId()).getBytes(),
                     StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING);
         } catch (IOException e) {

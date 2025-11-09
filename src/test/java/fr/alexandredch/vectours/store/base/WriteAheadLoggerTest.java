@@ -1,16 +1,22 @@
 package fr.alexandredch.vectours.store.base;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-
+import fr.alexandredch.vectours.data.Metadata;
+import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.operations.Operation;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import org.apache.commons.lang3.ArrayUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Map;
+import java.util.stream.Stream;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @ExtendWith(MockitoExtension.class)
 public class WriteAheadLoggerTest {
@@ -18,6 +24,11 @@ public class WriteAheadLoggerTest {
     private static final Path LOG_FILE_PATH = Paths.get(WriteAheadLogger.LOG_FILE_NAME);
     private static final Segment OLD_SEGMENT = new Segment(1);
     private static final Segment SEGMENT = new Segment(4);
+
+    private static final Metadata METADATA = new Metadata(Map.of("key1", "value1", "key2", "value2"));
+
+    private static final String VECTOR_ID_1 = "vec1";
+    private static final Vector VECTOR_WITH_METADATA = new Vector(VECTOR_ID_1, new double[] {1.0, 2.0, 3.0}, METADATA);
 
     private WriteAheadLogger fixture;
 
@@ -59,6 +70,21 @@ public class WriteAheadLoggerTest {
     }
 
     @Test
+    void loadFromCheckpoint_returns_operations_even_if_no_checkpoint_file() throws Exception {
+        // Prepare the log file with a segment and some operations
+        fixture.newSegment(SEGMENT);
+        Operation.Delete op1 = new Operation.Delete("1");
+        Operation.Delete op2 = new Operation.Delete("2");
+        fixture.applyOperation(op1);
+        fixture.applyOperation(op2);
+
+        var operations = fixture.loadFromCheckpoint();
+        assertThat(operations.size()).isEqualTo(2);
+        assertThat(operations.get(0)).usingRecursiveComparison().isEqualTo(op1);
+        assertThat(operations.get(1)).usingRecursiveComparison().isEqualTo(op2);
+    }
+
+    @Test
     void newSegment_appends_segment_id_to_log() throws Exception {
         fixture.newSegment(SEGMENT);
         // Read the log file and verify the segment id is present
@@ -68,14 +94,26 @@ public class WriteAheadLoggerTest {
 
     @Test
     void applyOperation_appends_operation_to_log() throws Exception {
-        Operation.Delete operation = new Operation.Delete("42");
-        fixture.applyOperation(operation);
-        // Read the log file and verify the operation is present
-        String logContent = Files.readString(LOG_FILE_PATH);
-        byte[] operationBytes = operation.toBytes();
-        for (byte b : operationBytes) {
-            assertThat(logContent.getBytes()).contains(b);
-        }
+        Operation.Delete operation1 = new Operation.Delete("42");
+        fixture.applyOperation(operation1);
+        Operation.Delete operation2 = new Operation.Delete("43");
+        fixture.applyOperation(operation2);
+        // Read the log file and verify the operations are present
+        byte[] logBytes = Files.readAllBytes(LOG_FILE_PATH);
+        byte[] expectedBytes = Stream.of(operation1, operation2)
+                .flatMap(op -> Stream.of(Operation.toBytes(op), WriteAheadLogger.SEPARATOR_BYTES))
+                .reduce(new byte[0], ArrayUtils::addAll);
+        assertThat(new String(logBytes)).isEqualTo(new String(expectedBytes));
+    }
+
+    @Test
+    void applyOperations_accepts_metadata() {
+        Operation.Insert operation1 = new Operation.Insert(VECTOR_WITH_METADATA);
+        fixture.applyOperation(operation1);
+
+        var operations = fixture.loadFromCheckpoint();
+        assertThat(operations.size()).isEqualTo(1);
+        assertThat(operations.getFirst()).usingRecursiveComparison().isEqualTo(operation1);
     }
 
     @Test
@@ -89,7 +127,7 @@ public class WriteAheadLoggerTest {
         fixture.markLastCheckpoint(SEGMENT);
         // Read the checkpoint file and verify it contains the segment id
         String checkpointContent = Files.readString(Paths.get(WriteAheadLogger.CHECKPOINT_FILE_NAME));
-        assertThat(checkpointContent.trim()).isEqualTo(Integer.toString(SEGMENT.getId()));
+        assertThat(checkpointContent).isEqualTo(Integer.toString(SEGMENT.getId()));
     }
 
     @Test
