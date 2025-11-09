@@ -1,4 +1,4 @@
-# Vectours
+# Vectours [![Java CI with Gradle](https://github.com/LimpSword/vectours/actions/workflows/gradle.yml/badge.svg)](https://github.com/LimpSword/vectours/actions/workflows/gradle.yml)
 
 A personal vector database implementation built from scratch in Java.
 
