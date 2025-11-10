@@ -1,9 +1,6 @@
 package fr.alexandredch.vectours.store.base;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import fr.alexandredch.vectours.data.Vector;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -11,6 +8,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 class InMemoryStoreTest {
 
@@ -31,6 +32,7 @@ class InMemoryStoreTest {
     @AfterEach
     void tearDown() {
         fixture.dropAll();
+        fixture.shutdown();
         fixture = null;
     }
 

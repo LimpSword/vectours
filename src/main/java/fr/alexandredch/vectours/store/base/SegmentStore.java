@@ -3,13 +3,11 @@ package fr.alexandredch.vectours.store.base;
 import fr.alexandredch.vectours.data.Metadata;
 import fr.alexandredch.vectours.data.Vector;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -178,6 +176,16 @@ public final class SegmentStore {
         segments.clear();
         currentSegment = null;
         initialized = false;
+
+        Path segmentsDir = Path.of(SEGMENTS_DIR);
+        if (!Files.exists(segmentsDir)) {
+            return;
+        }
+        try (var dirStream = Files.walk(segmentsDir)) {
+            dirStream.map(Path::toFile).sorted(Comparator.reverseOrder()).forEach(File::delete);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to delete segments directory", e);
+        }
     }
 
     private void checkInitialized() {

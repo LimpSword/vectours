@@ -15,7 +15,7 @@ public class InMemoryStoreBenchmark {
         public InMemoryStore store;
 
         // Setup at the start of the benchmark trial
-        @Setup(Level.Trial)
+        @Setup(Level.Iteration)
         public void setUp() {
             store = new InMemoryStore();
             store.initFromDisk();
@@ -25,6 +25,15 @@ public class InMemoryStoreBenchmark {
                         new Vector("id" + i, new double[] {(double) i, (double) i + 1, (double) i + 2}, null));
             }
         }
+
+        @TearDown(Level.Iteration)
+        public void tearDown() {
+            store.dropAll();
+            store.shutdown();
+            store = null;
+
+            System.gc();
+        }
     }
 
     @State(Scope.Benchmark)
@@ -32,7 +41,7 @@ public class InMemoryStoreBenchmark {
         public InMemoryStore store;
 
         // Setup at the start of the benchmark trial
-        @Setup(Level.Trial)
+        @Setup(Level.Iteration)
         public void setUp() {
             store = new InMemoryStore();
             store.initFromDisk();
@@ -42,9 +51,19 @@ public class InMemoryStoreBenchmark {
                         new Vector("id" + i, new double[] {(double) i, (double) i + 1, (double) i + 2}, null));
             }
             store.saveAll();
+            store.shutdown();
             store = null;
 
             store = new InMemoryStore();
+        }
+
+        @TearDown(Level.Iteration)
+        public void tearDown() {
+            store.dropAll();
+            store.shutdown();
+            store = null;
+
+            System.gc();
         }
     }
 

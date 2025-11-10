@@ -91,7 +91,9 @@ public final class InMemoryStore implements Store {
     public void dropAll() {
         segmentStore.close();
         writeAheadLogger.clearLog();
+    }
 
+    public void shutdown() {
         scheduledExecutorService.shutdownNow();
     }
 
