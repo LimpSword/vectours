@@ -16,6 +16,10 @@ public final class SegmentSaverTask implements Runnable {
 
     @Override
     public void run() {
+        saveSegments();
+    }
+
+    public void saveSegments() {
         segmentStore.getSegments().stream().filter(Segment::isDirty).forEach(segment -> {
             // Save segment to disk
             segmentStore.saveSegmentToDisk(segment);

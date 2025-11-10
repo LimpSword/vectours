@@ -17,4 +17,6 @@ public interface Store {
     Vector getVector(String id);
 
     void dropAll();
+
+    void saveAll();
 }

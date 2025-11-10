@@ -3,6 +3,7 @@ package fr.alexandredch.vectours.store.base;
 import fr.alexandredch.vectours.data.Metadata;
 import fr.alexandredch.vectours.data.Vector;
 import java.io.BufferedWriter;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -131,9 +132,11 @@ public final class SegmentStore {
 
                     // Load vectors
                     if (Files.exists(vectorsPath)) {
+                        String lastLine = "No lines read";
                         try {
                             List<String> vectorLines = Files.readAllLines(vectorsPath);
                             for (String line : vectorLines) {
+                                lastLine = line;
                                 String[] parts = line.split(":");
                                 String id = parts[0];
                                 String valuesStr = parts[1].replaceAll("[\\[\\] ]", "");
@@ -143,7 +146,8 @@ public final class SegmentStore {
                                 Vector vector = new Vector(id, values, new Metadata(Map.of()));
                                 segment.insert(vector);
                             }
-                        } catch (java.io.IOException e) {
+                        } catch (IOException e) {
+                            System.out.println(lastLine);
                             throw new RuntimeException("Failed to load vectors from disk", e);
                         }
                     }

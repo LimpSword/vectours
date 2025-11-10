@@ -2,9 +2,10 @@ package fr.alexandredch.vectours;
 
 import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.store.base.InMemoryStore;
-import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
+
+import java.util.concurrent.TimeUnit;
 
 @State(Scope.Benchmark)
 public class InMemoryStoreBenchmark {
@@ -40,12 +41,7 @@ public class InMemoryStoreBenchmark {
                         "id" + i,
                         new Vector("id" + i, new double[] {(double) i, (double) i + 1, (double) i + 2}, null));
             }
-            store.runTasks();
-            try {
-                Thread.sleep(65000); // Wait for background tasks to complete
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+            store.saveAll();
             store = null;
 
             store = new InMemoryStore();

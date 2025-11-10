@@ -19,55 +19,31 @@ public final class WriteAheadLogger {
     public List<Operation> loadFromCheckpoint() {
         // Read from the last checkpoint and return the list of operations
         int lastCheckpointedSegmentId = getLastCheckpointedSegmentId();
-        Path path = Paths.get(LOG_FILE_NAME);
-        if (!Files.exists(path)) {
-            return List.of();
-        }
-        try {
-            // Get all bytes separated by new lines
-            List<byte[]> rawLines = new ArrayList<>();
-            List<Byte> currentLine = new ArrayList<>();
-            byte[] allBytes = Files.readAllBytes(path);
-            for (byte b : allBytes) {
-                if (b == '\n') {
-                    byte[] lineBytes = new byte[currentLine.size()];
-                    for (int i = 0; i < currentLine.size(); i++) {
-                        lineBytes[i] = currentLine.get(i);
+        List<Operation> operations = new ArrayList<>();
+        boolean startCollecting = lastCheckpointedSegmentId == -1;
+        boolean next = false;
+        for (byte[] line : rawLines()) {
+            if (!startCollecting) {
+                try {
+                    int segmentId = Integer.parseInt(new String(line));
+                    if (segmentId == lastCheckpointedSegmentId) {
+                        next = true;
+                    } else if (next) {
+                        startCollecting = true;
                     }
-                    rawLines.add(lineBytes);
-                    currentLine.clear();
-                } else {
-                    currentLine.add(b);
+                } catch (NumberFormatException e) {
+                    // Ignore non-segment id lines
+                }
+            } else {
+                try {
+                    Operation operation = Operation.fromBytes(line);
+                    operations.add(operation);
+                } catch (Exception e) {
+                    // Ignore invalid operation lines
                 }
             }
-            List<Operation> operations = new ArrayList<>();
-            boolean startCollecting = lastCheckpointedSegmentId == -1;
-            boolean next = false;
-            for (byte[] line : rawLines) {
-                if (!startCollecting) {
-                    try {
-                        int segmentId = Integer.parseInt(new String(line));
-                        if (segmentId == lastCheckpointedSegmentId) {
-                            next = true;
-                        } else if (next) {
-                            startCollecting = true;
-                        }
-                    } catch (NumberFormatException e) {
-                        // Ignore non-segment id lines
-                    }
-                } else {
-                    try {
-                        Operation operation = Operation.fromBytes(line);
-                        operations.add(operation);
-                    } catch (Exception e) {
-                        // Ignore invalid operation lines
-                    }
-                }
-            }
-            return operations;
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read WAL log", e);
         }
+        return operations;
     }
 
     public void newSegment(Segment segment) {
@@ -124,27 +100,18 @@ public final class WriteAheadLogger {
     }
 
     public int getLatestSegmentIdIncludingUnclosed() {
-        Path path = Paths.get(LOG_FILE_NAME);
-        if (!Files.exists(path)) {
-            return -1;
-        }
-        try {
-            List<String> lines = Files.readAllLines(path);
-            int maxId = -1;
-            for (String line : lines) {
-                try {
-                    int segmentId = Integer.parseInt(line);
-                    if (segmentId > maxId) {
-                        maxId = segmentId;
-                    }
-                } catch (NumberFormatException e) {
-                    // Ignore non-segment id lines
+        int latestSegmentId = -1;
+        for (byte[] line : rawLines()) {
+            try {
+                int segmentId = Integer.parseInt(new String(line));
+                if (segmentId > latestSegmentId) {
+                    latestSegmentId = segmentId;
                 }
+            } catch (NumberFormatException e) {
+                // Ignore non-segment id lines
             }
-            return maxId;
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to read WAL log", e);
         }
+        return latestSegmentId;
     }
 
     public void clearLog() {
@@ -155,6 +122,35 @@ public final class WriteAheadLogger {
             Files.deleteIfExists(checkpointFilePath);
         } catch (IOException e) {
             throw new RuntimeException("Failed to clear WAL log", e);
+        }
+    }
+
+    private List<byte[]> rawLines() {
+        try {
+            Path path = Paths.get(LOG_FILE_NAME);
+            if (!Files.exists(path)) {
+                return List.of();
+            }
+
+            // Get all bytes separated by new lines
+            List<byte[]> rawLines = new ArrayList<>();
+            List<Byte> currentLine = new ArrayList<>();
+            byte[] allBytes = Files.readAllBytes(path);
+            for (byte b : allBytes) {
+                if (b == '\n') {
+                    byte[] lineBytes = new byte[currentLine.size()];
+                    for (int i = 0; i < currentLine.size(); i++) {
+                        lineBytes[i] = currentLine.get(i);
+                    }
+                    rawLines.add(lineBytes);
+                    currentLine.clear();
+                } else {
+                    currentLine.add(b);
+                }
+            }
+            return rawLines;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read WAL log", e);
         }
     }
 }

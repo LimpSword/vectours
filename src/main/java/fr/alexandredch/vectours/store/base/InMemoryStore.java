@@ -18,15 +18,13 @@ public final class InMemoryStore implements Store {
 
     private final WriteAheadLogger writeAheadLogger;
     private final SegmentStore segmentStore;
+    private final SegmentSaverTask segmentSaverTask;
 
     public InMemoryStore() {
         writeAheadLogger = new WriteAheadLogger();
         segmentStore = new SegmentStore(writeAheadLogger);
-    }
+        segmentSaverTask = new SegmentSaverTask(writeAheadLogger, segmentStore);
 
-    public void runTasks() {
-        // Interferes with tests, so not running it by default
-        SegmentSaverTask segmentSaverTask = new SegmentSaverTask(writeAheadLogger, segmentStore);
         scheduledExecutorService.scheduleAtFixedRate(segmentSaverTask, 0, 30, TimeUnit.SECONDS);
     }
 
@@ -95,5 +93,10 @@ public final class InMemoryStore implements Store {
         writeAheadLogger.clearLog();
 
         scheduledExecutorService.shutdownNow();
+    }
+
+    @Override
+    public void saveAll() {
+        segmentSaverTask.saveSegments();
     }
 }
