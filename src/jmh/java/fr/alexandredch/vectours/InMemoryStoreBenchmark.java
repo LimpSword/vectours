@@ -2,10 +2,9 @@ package fr.alexandredch.vectours;
 
 import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.store.base.InMemoryStore;
+import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
-
-import java.util.concurrent.TimeUnit;
 
 @State(Scope.Benchmark)
 public class InMemoryStoreBenchmark {
