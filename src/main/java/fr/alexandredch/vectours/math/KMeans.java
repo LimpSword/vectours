@@ -67,11 +67,9 @@ public final class KMeans {
 
     private static List<Cluster> generateRandomClusters(double[][] data, int clusterCount) {
         List<Cluster> clusters = new ArrayList<>(clusterCount);
-        for (int i = 0; i < clusterCount; i++) {
-            random.ints(0, data.length).distinct().limit(clusterCount).forEach(index -> {
-                clusters.add(new Cluster(data[index]));
-            });
-        }
+        random.ints(0, data.length).distinct().limit(clusterCount).forEach(index -> {
+            clusters.add(new Cluster(data[index]));
+        });
         return clusters;
     }
 }
