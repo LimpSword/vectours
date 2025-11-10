@@ -27,7 +27,9 @@ public final class KMeans {
                         closestCluster = cluster;
                     }
                 }
-                assignments.computeIfAbsent(closestCluster, k -> new ArrayList<>()).add(vector);
+                assignments
+                        .computeIfAbsent(closestCluster, k -> new ArrayList<>())
+                        .add(vector);
             }
 
             // Recalculate centroids
