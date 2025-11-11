@@ -1,5 +1,6 @@
 package fr.alexandredch.vectours;
 
+import fr.alexandredch.vectours.data.SearchParameters;
 import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.store.base.InMemoryStore;
 import java.util.concurrent.TimeUnit;
@@ -18,10 +19,8 @@ public class InMemoryStoreBenchmark {
         public void setUp() {
             store = new InMemoryStore();
             store.initFromDisk();
-            for (int i = 0; i < 100000; i++) {
-                store.insert(
-                        "id" + i,
-                        new Vector("id" + i, new double[] {(double) i, (double) i + 1, (double) i + 2}, null));
+            for (int i = 0; i < 1_000_000; i++) {
+                store.insert(new Vector("id" + i, new double[] {(double) i, (double) i + 1, (double) i + 2}, null));
             }
         }
 
@@ -44,10 +43,8 @@ public class InMemoryStoreBenchmark {
         public void setUp() {
             store = new InMemoryStore();
             store.initFromDisk();
-            for (int i = 0; i < 100000; i++) {
-                store.insert(
-                        "id" + i,
-                        new Vector("id" + i, new double[] {(double) i, (double) i + 1, (double) i + 2}, null));
+            for (int i = 0; i < 100_000; i++) {
+                store.insert(new Vector("id" + i, new double[] {(double) i, (double) i + 1, (double) i + 2}, null));
             }
             store.saveAll();
             store.shutdown();
@@ -70,8 +67,16 @@ public class InMemoryStoreBenchmark {
     @OutputTimeUnit(TimeUnit.MILLISECONDS)
     @Fork(value = 1, warmups = 1)
     @BenchmarkMode(Mode.AverageTime)
-    public void search(SearchState state, Blackhole blackhole) {
-        blackhole.consume(state.store.search(new double[] {5000, 5001, 5002}, 30));
+    public void searchBruteforce(SearchState state, Blackhole blackhole) {
+        blackhole.consume(state.store.search(new SearchParameters(new double[] {5000, 5001, 5002}, false, 30)));
+    }
+
+    @Benchmark
+    @OutputTimeUnit(TimeUnit.MILLISECONDS)
+    @Fork(value = 1, warmups = 1)
+    @BenchmarkMode(Mode.AverageTime)
+    public void searchIVF(SearchState state, Blackhole blackhole) {
+        blackhole.consume(state.store.search(new SearchParameters(new double[] {5000, 5001, 5002}, true, 30)));
     }
 
     @Benchmark
