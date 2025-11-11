@@ -8,6 +8,7 @@ import fr.alexandredch.vectours.store.base.SegmentStore;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
 
 public final class IVFIndex {
 
@@ -19,7 +20,6 @@ public final class IVFIndex {
 
     public IVFIndex(SegmentStore segmentStore) {
         this.segmentStore = segmentStore;
-        // TODO: Clusters should save the same Vector objects as in the segment store (not copies)
         List<Vector> vectors = segmentStore.getAllVectors();
         if (vectors.size() <= MIN_VECTORS_FOR_IVF_INDEX) {
             this.clusters = new ArrayList<>();
@@ -36,7 +36,8 @@ public final class IVFIndex {
     public void insertVector(Vector vector) {
         // Add to the closest cluster or rebuild the index
         if (this.built) {
-            Cluster closestCluster = findClosestClusters(vector.values(), 1).getFirst();
+            Cluster closestCluster =
+                    findClosestClusters(vector.values(), 1).findFirst().orElseThrow();
             closestCluster.addVector(vector);
         } else if (segmentStore.getAllVectors().size() > MIN_VECTORS_FOR_IVF_INDEX) {
             // Rebuild the index
@@ -52,28 +53,26 @@ public final class IVFIndex {
         System.out.println("yo");
 
         // Find the nprobe closest clusters
-        List<Cluster> closestClusters = findClosestClusters(vector, nprobe);
-        for (Cluster cluster : closestClusters) {
+        findClosestClusters(vector, nprobe).forEach(cluster -> {
             result.addAll(searchInCluster(cluster, vector, nprobe));
-        }
+        });
 
         return result.stream()
-                .sorted(Comparator.comparingDouble(v -> Vectors.euclideanDistance(v.values(), vector)))
+                .sorted(Comparator.comparingDouble(v -> Vectors.squaredEuclidianDistance(v.values(), vector)))
                 .limit(nprobe)
                 .toList();
     }
 
     private List<Vector> searchInCluster(Cluster cluster, double[] vector, int nprobe) {
         return cluster.getData().stream()
-                .sorted(Comparator.comparingDouble(v -> Vectors.euclideanDistance(v.values(), vector)))
+                .sorted(Comparator.comparingDouble(v -> Vectors.squaredEuclidianDistance(v.values(), vector)))
                 .limit(nprobe)
                 .toList();
     }
 
-    private List<Cluster> findClosestClusters(double[] vector, int nprobe) {
+    private Stream<Cluster> findClosestClusters(double[] vector, int nprobe) {
         return clusters.stream()
-                .sorted(Comparator.comparingDouble(c -> Vectors.euclideanDistance(c.getCentroid(), vector)))
-                .limit(nprobe)
-                .toList();
+                .sorted(Comparator.comparingDouble(c -> Vectors.squaredEuclidianDistance(c.getCentroid(), vector)))
+                .limit(nprobe);
     }
 }

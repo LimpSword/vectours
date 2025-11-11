@@ -1,5 +1,6 @@
 package fr.alexandredch.vectours.store.base;
 
+import com.google.common.primitives.Bytes;
 import fr.alexandredch.vectours.operations.Operation;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -64,9 +65,10 @@ public final class WriteAheadLogger {
     public void applyOperation(Operation operation) {
         // Add the operation to the log
         Path path = Paths.get(LOG_FILE_NAME);
+        // TODO: optimize by batching writes
         try {
-            Files.write(path, Operation.toBytes(operation), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-            Files.write(path, SEPARATOR_BYTES, StandardOpenOption.APPEND);
+            byte[] bytesToWrite = Bytes.concat(Operation.toBytes(operation), SEPARATOR_BYTES);
+            Files.write(path, bytesToWrite, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (IOException e) {
             throw new RuntimeException("Failed to write to WAL log", e);
         }

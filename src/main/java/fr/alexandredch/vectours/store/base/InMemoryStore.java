@@ -1,5 +1,6 @@
 package fr.alexandredch.vectours.store.base;
 
+import fr.alexandredch.vectours.data.SearchParameters;
 import fr.alexandredch.vectours.data.SearchResult;
 import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.index.IVFIndex;
@@ -54,7 +55,7 @@ public final class InMemoryStore implements Store {
     }
 
     @Override
-    public void insert(String id, Vector vector) {
+    public void insert(Vector vector) {
         // Append to WAL
         writeAheadLogger.applyOperation(new Operation.Insert(vector));
 
@@ -68,13 +69,31 @@ public final class InMemoryStore implements Store {
         if (ivfIndex.canSearch()) {
             return ivfIndex.search(searchedVector, k).stream()
                     .map(v -> new SearchResult(
-                            v.id(), Vectors.euclideanDistance(v.values(), searchedVector), v.metadata()))
+                            v.id(), Vectors.squaredEuclidianDistance(v.values(), searchedVector), v.metadata()))
                     .toList();
         }
         return segmentStore.getAllVectors().stream()
-                .map(v -> new SearchResult(v.id(), Vectors.euclideanDistance(v.values(), searchedVector), v.metadata()))
+                .map(v -> new SearchResult(
+                        v.id(), Vectors.squaredEuclidianDistance(v.values(), searchedVector), v.metadata()))
                 .sorted(Comparator.comparingDouble(SearchResult::distance))
                 .limit(k)
+                .toList();
+    }
+
+    @Override
+    public List<SearchResult> search(SearchParameters searchParameters) {
+        double[] searchedVector = searchParameters.searchedVector();
+        if (searchParameters.allowIVF() && ivfIndex.canSearch()) {
+            return ivfIndex.search(searchedVector, searchParameters.topK()).stream()
+                    .map(v -> new SearchResult(
+                            v.id(), Vectors.squaredEuclidianDistance(v.values(), searchedVector), v.metadata()))
+                    .toList();
+        }
+        return segmentStore.getAllVectors().stream()
+                .map(v -> new SearchResult(
+                        v.id(), Vectors.squaredEuclidianDistance(v.values(), searchedVector), v.metadata()))
+                .sorted(Comparator.comparingDouble(SearchResult::distance))
+                .limit(searchParameters.topK())
                 .toList();
     }
 

@@ -22,7 +22,7 @@ public final class KMeans {
                 Cluster closestCluster = null;
                 double closestDistance = Float.MAX_VALUE;
                 for (Cluster cluster : clusters) {
-                    double distance = Vectors.euclideanDistance(vector.values(), cluster.getCentroid());
+                    double distance = Vectors.squaredEuclidianDistance(vector.values(), cluster.getCentroid());
                     if (distance < closestDistance) {
                         closestDistance = distance;
                         closestCluster = cluster;

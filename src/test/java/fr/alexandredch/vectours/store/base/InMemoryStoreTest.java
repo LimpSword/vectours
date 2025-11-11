@@ -123,7 +123,7 @@ class InMemoryStoreTest {
     }
 
     private void insertVector(Vector vector) {
-        fixture.insert(vector.id(), vector);
+        fixture.insert(vector);
     }
 
     private static Stream<Arguments> provideVectors() {
