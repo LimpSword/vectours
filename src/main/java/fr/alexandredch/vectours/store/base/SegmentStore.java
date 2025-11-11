@@ -36,6 +36,11 @@ public final class SegmentStore {
         return Stream.concat(segments.stream(), Stream.of(currentSegment)).collect(Collectors.toList());
     }
 
+    public int getTotalVectorCount() {
+        checkInitialized();
+        return segments.stream().mapToInt(Segment::size).sum() + currentSegment.size();
+    }
+
     public List<Vector> getAllVectors() {
         checkInitialized();
         return Stream.concat(

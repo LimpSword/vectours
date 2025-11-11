@@ -23,15 +23,24 @@ public final class Segment {
         if (isFull()) {
             throw new IllegalStateException("Segment is full");
         }
+        tombstones.remove(vector.id());
+
         dirty = true;
         vectors.put(vector.id(), vector);
         ids.add(vector.id());
     }
 
     public void delete(String id) {
+        if (!ids.contains(id) || tombstones.contains(id)) {
+            return;
+        }
         dirty = true;
         tombstones.add(id);
         ids.remove(id);
+    }
+
+    public int size() {
+        return vectors.size() - tombstones.size();
     }
 
     public boolean containsId(String id) {

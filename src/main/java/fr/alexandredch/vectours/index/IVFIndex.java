@@ -39,7 +39,7 @@ public final class IVFIndex {
             Cluster closestCluster =
                     findClosestClusters(vector.values(), 1).findFirst().orElseThrow();
             closestCluster.addVector(vector);
-        } else if (segmentStore.getAllVectors().size() > MIN_VECTORS_FOR_IVF_INDEX) {
+        } else if (segmentStore.getTotalVectorCount() > MIN_VECTORS_FOR_IVF_INDEX) {
             // Rebuild the index
             List<Vector> vectors = segmentStore.getAllVectors();
             this.clusters.clear();
@@ -50,7 +50,6 @@ public final class IVFIndex {
 
     public List<Vector> search(double[] vector, int nprobe) {
         List<Vector> result = new ArrayList<>();
-        System.out.println("yo");
 
         // Find the nprobe closest clusters
         findClosestClusters(vector, nprobe).forEach(cluster -> {
