@@ -1,0 +1,80 @@
+### Insert a vector
+POST http://localhost:7001/vectors
+Content-Type: application/json
+
+{
+  "id": "vec1",
+  "values": [0.1, 0.2, 0.3, 0.4, 0.5],
+  "metadata": {
+    "metadata": {
+      "name": "Test Vector 1",
+      "category": "test"
+    }
+  }
+}
+
+### Insert another vector
+POST http://localhost:7001/vectors
+Content-Type: application/json
+
+{
+  "id": "vec2",
+  "values": [0.2, 0.3, 0.4, 0.5, 0.6],
+  "metadata": {
+    "metadata": {
+      "name": "Test Vector 2",
+      "category": "test"
+    }
+  }
+}
+
+### Insert a third vector
+POST http://localhost:7001/vectors
+Content-Type: application/json
+
+{
+  "id": "vec3",
+  "values": [0.9, 0.8, 0.7, 0.6, 0.5],
+  "metadata": {
+    "metadata": {
+      "name": "Test Vector 3",
+      "category": "production"
+    }
+  }
+}
+
+### Get a vector by ID
+GET http://localhost:7001/vectors/vec1
+
+### Get a non-existent vector (should return 404)
+GET http://localhost:7001/vectors/nonexistent
+
+### Search for similar vectors (with IVF)
+POST http://localhost:7001/search
+Content-Type: application/json
+
+{
+  "searchedVector": [0.15, 0.25, 0.35, 0.45, 0.55],
+  "allowIVF": true,
+  "topK": 3
+}
+
+### Search for similar vectors (without IVF - brute force)
+POST http://localhost:7001/search
+Content-Type: application/json
+
+{
+  "searchedVector": [0.15, 0.25, 0.35, 0.45, 0.55],
+  "allowIVF": false,
+  "topK": 2
+}
+
+### Search with a different query vector
+POST http://localhost:7001/search
+Content-Type: application/json
+
+{
+  "searchedVector": [0.9, 0.85, 0.75, 0.65, 0.55],
+  "allowIVF": true,
+  "topK": 1
+}
