@@ -9,4 +9,8 @@ public record Vector(String id, double[] values, Metadata metadata) implements S
     public String toString() {
         return id() + ":" + Arrays.toString(values());
     }
+
+    public Vector withId(String newId) {
+        return new Vector(newId, this.values, this.metadata);
+    }
 }

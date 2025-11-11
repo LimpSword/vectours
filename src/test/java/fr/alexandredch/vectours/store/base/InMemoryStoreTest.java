@@ -3,10 +3,10 @@ package fr.alexandredch.vectours.store.base;
 import static org.junit.jupiter.api.Assertions.*;
 
 import fr.alexandredch.vectours.data.Vector;
+import fr.alexandredch.vectours.index.IVFIndex;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -19,6 +19,9 @@ class InMemoryStoreTest {
 
     private static final String VECTOR_ID_2 = "vec2";
     private static final Vector VECTOR_2 = new Vector(VECTOR_ID_2, new double[] {4.0, 5.0, 6.0}, null);
+
+    private static final String VECTOR_ID_3 = "vec3";
+    private static final Vector VECTOR_3 = new Vector(VECTOR_ID_3, new double[] {1.0, 2.0, 3.5}, null);
 
     private InMemoryStore fixture;
 
@@ -70,7 +73,6 @@ class InMemoryStoreTest {
     }
 
     @Test
-    @Disabled
     void search_multiple_vectors_with_same_distance() {
         Vector vectorA = new Vector("vecA", new double[] {1.0, 1.0}, null);
         Vector vectorB = new Vector("vecB", new double[] {1.0, -1.0}, null);
@@ -81,6 +83,21 @@ class InMemoryStoreTest {
         assertEquals(2, results.size());
         assertTrue(results.stream().anyMatch(r -> r.id().equals("vecA")));
         assertTrue(results.stream().anyMatch(r -> r.id().equals("vecB")));
+    }
+
+    @Test
+    void search_with_ivf_index() {
+        // There is a minimal number of vectors required to build the IVF index
+        insertVector(VECTOR_1);
+        for (int i = 0; i < IVFIndex.MIN_VECTORS_FOR_IVF_INDEX; i++) {
+            insertVector(VECTOR_2.withId(VECTOR_ID_2 + "_" + i));
+        }
+        insertVector(VECTOR_3);
+
+        var results = fixture.search(VECTOR_1.values(), 2);
+        assertEquals(2, results.size());
+        assertEquals(VECTOR_ID_1, results.getFirst().id());
+        assertEquals(VECTOR_ID_3, results.get(1).id());
     }
 
     @ParameterizedTest

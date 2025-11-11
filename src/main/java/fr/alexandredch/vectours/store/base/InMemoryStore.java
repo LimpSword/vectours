@@ -2,12 +2,13 @@ package fr.alexandredch.vectours.store.base;
 
 import fr.alexandredch.vectours.data.SearchResult;
 import fr.alexandredch.vectours.data.Vector;
+import fr.alexandredch.vectours.index.IVFIndex;
 import fr.alexandredch.vectours.math.Vectors;
 import fr.alexandredch.vectours.operations.Operation;
 import fr.alexandredch.vectours.store.Store;
 import fr.alexandredch.vectours.store.background.SegmentSaverTask;
+import java.util.Comparator;
 import java.util.List;
-import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -19,6 +20,8 @@ public final class InMemoryStore implements Store {
     private final WriteAheadLogger writeAheadLogger;
     private final SegmentStore segmentStore;
     private final SegmentSaverTask segmentSaverTask;
+
+    private IVFIndex ivfIndex;
 
     public InMemoryStore() {
         writeAheadLogger = new WriteAheadLogger();
@@ -46,6 +49,8 @@ public final class InMemoryStore implements Store {
                 }
             }
         }
+
+        ivfIndex = new IVFIndex(segmentStore);
     }
 
     @Override
@@ -55,21 +60,21 @@ public final class InMemoryStore implements Store {
 
         // Add to segment
         segmentStore.insertVector(vector);
+        ivfIndex.insertVector(vector);
     }
 
     @Override
     public List<SearchResult> search(double[] searchedVector, int k) {
-        // TODO: move away from TreeMap because it overwrites entries with same distance
-        TreeMap<Double, Vector> map = new TreeMap<>();
-        for (Vector vector : segmentStore.getAllVectors()) {
-            double distance = Vectors.euclideanDistance(searchedVector, vector.values());
-            map.put(distance, vector);
+        if (ivfIndex.canSearch()) {
+            return ivfIndex.search(searchedVector, k).stream()
+                    .map(v -> new SearchResult(
+                            v.id(), Vectors.euclideanDistance(v.values(), searchedVector), v.metadata()))
+                    .toList();
         }
-
-        return map.entrySet().stream()
+        return segmentStore.getAllVectors().stream()
+                .map(v -> new SearchResult(v.id(), Vectors.euclideanDistance(v.values(), searchedVector), v.metadata()))
+                .sorted(Comparator.comparingDouble(SearchResult::distance))
                 .limit(k)
-                .map(e -> new SearchResult(
-                        e.getValue().id(), e.getKey(), e.getValue().metadata()))
                 .toList();
     }
 

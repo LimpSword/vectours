@@ -1,27 +1,34 @@
 package fr.alexandredch.vectours.math;
 
+import fr.alexandredch.vectours.data.Vector;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public final class Cluster {
 
     private final double[] centroid;
-    private double[][] data;
+    private List<Vector> data;
 
     public Cluster(double[] centroid) {
         this.centroid = centroid;
-        this.data = new double[0][];
+        this.data = new ArrayList<>();
     }
 
     public double[] getCentroid() {
         return centroid;
     }
 
-    public double[][] getData() {
+    public List<Vector> getData() {
         return data;
     }
 
-    public void setData(double[][] data) {
+    public void setData(List<Vector> data) {
         this.data = data;
+    }
+
+    public void addVector(Vector vector) {
+        this.data.add(vector);
     }
 
     @Override
