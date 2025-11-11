@@ -5,16 +5,23 @@ import java.util.*;
 
 public final class KMeans {
 
+    private static final int MAX_ITERATIONS = 50;
+    private static final double tolerance = 1e-4;
+
     private static final Random random = new Random();
 
     public static List<Cluster> fit(List<Vector> data) {
-        int clusterCount = (int) Math.sqrt(data.size());
+        int clusterCount = (int) (Math.log(data.size()) * 3);
 
         // Create clusters with random centroids
         List<Cluster> clusters = generateRandomClusters(data, clusterCount);
 
         boolean converged = false;
-        while (!converged) {
+
+        int iterations = 0;
+
+        while (!converged && iterations < MAX_ITERATIONS) {
+            iterations++;
             Map<Cluster, List<Vector>> assignments = new HashMap<>();
 
             // Assign points to the closest cluster
@@ -58,14 +65,24 @@ public final class KMeans {
             }
 
             // Check for convergence
-            if (newClusters.equals(clusters)) {
-                converged = true;
-            }
+            converged = hasClusterConverged(clusters, newClusters);
 
             clusters = newClusters;
         }
 
         return clusters;
+    }
+
+    private static boolean hasClusterConverged(List<Cluster> clusters, List<Cluster> newClusters) {
+        boolean converged = true;
+        for (int i = 0; i < clusters.size(); i++) {
+            double distance = Vectors.squaredEuclidianDistance(
+                    clusters.get(i).getCentroid(), newClusters.get(i).getCentroid());
+            if (distance > tolerance) {
+                converged = false;
+            }
+        }
+        return converged;
     }
 
     private static List<Cluster> generateRandomClusters(List<Vector> data, int clusterCount) {
