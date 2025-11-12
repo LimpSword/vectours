@@ -15,8 +15,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class InMemoryStore implements Store {
+
+    private static final Logger logger = LoggerFactory.getLogger(InMemoryStore.class);
 
     private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
 
@@ -36,11 +40,15 @@ public final class InMemoryStore implements Store {
 
     @Override
     public void initFromDisk() {
+        logger.info("Initializing InMemoryStore from disk...");
+
+        logger.info("Reading segments from disk...");
         // Read all segments from disk
         segmentStore.loadFromDisk();
 
         // Replay WAL from last checkpoint
         // TODO: improve this by keeping the segments as defined in the WAL
+        logger.info("Loading WAL operations from last checkpoint...");
         List<Operation> operations = writeAheadLogger.loadFromCheckpoint();
         for (Operation operation : operations) {
             switch (operation) {
@@ -53,7 +61,9 @@ public final class InMemoryStore implements Store {
             }
         }
 
+        logger.info("Creating IVF index...");
         ivfIndex = new IVFIndex(segmentStore);
+        logger.info("Finished initializing InMemoryStore from disk.");
     }
 
     @Override
@@ -68,18 +78,7 @@ public final class InMemoryStore implements Store {
 
     @Override
     public List<SearchResult> search(double[] searchedVector, int k) {
-        if (ivfIndex.canSearch()) {
-            return ivfIndex.search(searchedVector, k).stream()
-                    .map(v -> new SearchResult(
-                            v.id(), Vectors.squaredEuclidianDistance(v.values(), searchedVector), v.metadata()))
-                    .toList();
-        }
-        return segmentStore.getAllVectors().stream()
-                .map(v -> new SearchResult(
-                        v.id(), Vectors.squaredEuclidianDistance(v.values(), searchedVector), v.metadata()))
-                .sorted(Comparator.comparingDouble(SearchResult::distance))
-                .limit(k)
-                .toList();
+        return search(new SearchParameters(searchedVector, true, k));
     }
 
     @Override
