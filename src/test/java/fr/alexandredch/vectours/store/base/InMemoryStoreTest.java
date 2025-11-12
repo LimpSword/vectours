@@ -4,6 +4,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.index.IVFIndex;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,7 +46,7 @@ class InMemoryStoreTest {
     @MethodSource("provideVectors")
     void insert(String id, Vector vector) {
         // Vector without metadata
-        insertVector(vector);
+        insertVectors(vector);
 
         var retrievedVector = fixture.getVector(id);
         assertNotNull(retrievedVector);
@@ -53,8 +57,7 @@ class InMemoryStoreTest {
 
     @Test
     void search_all_vectors() {
-        insertVector(VECTOR_1);
-        insertVector(VECTOR_2);
+        insertVectors(VECTOR_1, VECTOR_2);
 
         var results = fixture.search(new double[] {1.0, 2.0, 3.1}, 2);
         assertEquals(2, results.size());
@@ -64,8 +67,7 @@ class InMemoryStoreTest {
 
     @Test
     void search_single_nearest_vector() {
-        insertVector(VECTOR_1);
-        insertVector(VECTOR_2);
+        insertVectors(VECTOR_1, VECTOR_2);
 
         var results = fixture.search(new double[] {1.0, 2.0, 3.1}, 1);
         assertEquals(1, results.size());
@@ -76,8 +78,7 @@ class InMemoryStoreTest {
     void search_multiple_vectors_with_same_distance() {
         Vector vectorA = new Vector("vecA", new double[] {1.0, 1.0}, null);
         Vector vectorB = new Vector("vecB", new double[] {1.0, -1.0}, null);
-        insertVector(vectorA);
-        insertVector(vectorB);
+        insertVectors(vectorA, vectorB);
 
         var results = fixture.search(new double[] {0.0, 0.0}, 2);
         assertEquals(2, results.size());
@@ -88,11 +89,13 @@ class InMemoryStoreTest {
     @Test
     void search_with_ivf_index() {
         // There is a minimal number of vectors required to build the IVF index
-        insertVector(VECTOR_1);
+        List<Vector> toInsert = new ArrayList<>();
+        toInsert.add(VECTOR_1);
         for (int i = 0; i < IVFIndex.MIN_VECTORS_FOR_IVF_INDEX; i++) {
-            insertVector(VECTOR_2.withId(VECTOR_ID_2 + "_" + i));
+            toInsert.add(VECTOR_2.withId(VECTOR_ID_2 + "_" + i));
         }
-        insertVector(VECTOR_3);
+        toInsert.add(VECTOR_3);
+        insertVectors(toInsert.toArray(new Vector[0]));
 
         var results = fixture.search(VECTOR_1.values(), 2);
         assertEquals(2, results.size());
@@ -102,10 +105,10 @@ class InMemoryStoreTest {
 
     @ParameterizedTest
     @MethodSource("provideVectors")
-    void delete(String id, Vector vector) {
-        insertVector(vector);
+    void delete(String id, Vector vector) throws ExecutionException, InterruptedException {
+        insertVectors(vector);
 
-        fixture.delete(id);
+        fixture.delete(id).get();
         var retrievedVector = fixture.getVector(id);
         assertNull(retrievedVector);
     }
@@ -113,7 +116,7 @@ class InMemoryStoreTest {
     @ParameterizedTest
     @MethodSource("provideVectors")
     void getVector(String id, Vector vector) {
-        insertVector(vector);
+        insertVectors(vector);
 
         var retrievedVector = fixture.getVector(id);
         assertNotNull(retrievedVector);
@@ -122,8 +125,12 @@ class InMemoryStoreTest {
         assertEquals(vector.metadata(), retrievedVector.metadata());
     }
 
-    private void insertVector(Vector vector) {
-        fixture.insert(vector);
+    private void insertVectors(Vector... vectors) {
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
+        for (Vector vector : vectors) {
+            futures.add(fixture.insert(vector));
+        }
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
     }
 
     private static Stream<Arguments> provideVectors() {

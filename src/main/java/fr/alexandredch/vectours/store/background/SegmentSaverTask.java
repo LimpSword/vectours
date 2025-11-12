@@ -2,7 +2,7 @@ package fr.alexandredch.vectours.store.background;
 
 import fr.alexandredch.vectours.store.base.Segment;
 import fr.alexandredch.vectours.store.base.SegmentStore;
-import fr.alexandredch.vectours.store.base.WriteAheadLogger;
+import fr.alexandredch.vectours.store.wal.WriteAheadLogger;
 
 public final class SegmentSaverTask implements Runnable {
 

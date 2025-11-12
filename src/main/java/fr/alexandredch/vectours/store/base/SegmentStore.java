@@ -2,6 +2,7 @@ package fr.alexandredch.vectours.store.base;
 
 import fr.alexandredch.vectours.data.Metadata;
 import fr.alexandredch.vectours.data.Vector;
+import fr.alexandredch.vectours.store.wal.WriteAheadLogger;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;

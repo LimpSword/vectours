@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import fr.alexandredch.vectours.data.Vector;
+import fr.alexandredch.vectours.store.wal.WriteAheadLogger;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

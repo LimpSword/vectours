@@ -8,8 +8,10 @@ import fr.alexandredch.vectours.math.Vectors;
 import fr.alexandredch.vectours.operations.Operation;
 import fr.alexandredch.vectours.store.Store;
 import fr.alexandredch.vectours.store.background.SegmentSaverTask;
+import fr.alexandredch.vectours.store.wal.WriteAheadLogger;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -55,13 +57,13 @@ public final class InMemoryStore implements Store {
     }
 
     @Override
-    public void insert(Vector vector) {
+    public CompletableFuture<Void> insert(Vector vector) {
         // Append to WAL
-        writeAheadLogger.applyOperation(new Operation.Insert(vector));
-
-        // Add to segment
-        segmentStore.insertVector(vector);
-        ivfIndex.insertVector(vector);
+        return writeAheadLogger.applyOperation(new Operation.Insert(vector)).thenRun(() -> {
+            // Insert into its segment and IVF index
+            segmentStore.insertVector(vector);
+            ivfIndex.insertVector(vector);
+        });
     }
 
     @Override
@@ -98,12 +100,12 @@ public final class InMemoryStore implements Store {
     }
 
     @Override
-    public void delete(String id) {
+    public CompletableFuture<Void> delete(String id) {
         // Append to WAL
-        writeAheadLogger.applyOperation(new Operation.Delete(id));
-
-        // Delete from its segment
-        segmentStore.deleteVector(id);
+        return writeAheadLogger.applyOperation(new Operation.Delete(id)).thenRun(() -> {
+            // Delete from its segment
+            segmentStore.deleteVector(id);
+        });
     }
 
     @Override

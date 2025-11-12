@@ -4,18 +4,19 @@ import fr.alexandredch.vectours.data.SearchParameters;
 import fr.alexandredch.vectours.data.SearchResult;
 import fr.alexandredch.vectours.data.Vector;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public interface Store {
 
     void initFromDisk();
 
-    void insert(Vector vector);
+    CompletableFuture<Void> insert(Vector vector);
 
     List<SearchResult> search(double[] vector, int k);
 
     List<SearchResult> search(SearchParameters searchParameters);
 
-    void delete(String id);
+    CompletableFuture<Void> delete(String id);
 
     Vector getVector(String id);
 

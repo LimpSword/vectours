@@ -5,7 +5,7 @@ import static org.mockito.Mockito.*;
 
 import fr.alexandredch.vectours.store.base.Segment;
 import fr.alexandredch.vectours.store.base.SegmentStore;
-import fr.alexandredch.vectours.store.base.WriteAheadLogger;
+import fr.alexandredch.vectours.store.wal.WriteAheadLogger;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

@@ -1,7 +1,7 @@
-package fr.alexandredch.vectours.store.base;
+package fr.alexandredch.vectours.store.wal;
 
-import com.google.common.primitives.Bytes;
 import fr.alexandredch.vectours.operations.Operation;
+import fr.alexandredch.vectours.store.base.Segment;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,6 +9,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public final class WriteAheadLogger {
 
@@ -16,6 +17,8 @@ public final class WriteAheadLogger {
     public static final String CHECKPOINT_FILE_NAME = "vectours_wal_checkpoint.dat";
 
     public static final byte[] SEPARATOR_BYTES = "\n".getBytes();
+
+    private final WALWriterBatcher walWriterBatcher = new WALWriterBatcher();
 
     public List<Operation> loadFromCheckpoint() {
         // Read from the last checkpoint and return the list of operations
@@ -62,16 +65,15 @@ public final class WriteAheadLogger {
         }
     }
 
-    public void applyOperation(Operation operation) {
-        // Add the operation to the log
-        Path path = Paths.get(LOG_FILE_NAME);
-        // TODO: optimize by batching writes
-        try {
-            byte[] bytesToWrite = Bytes.concat(Operation.toBytes(operation), SEPARATOR_BYTES);
-            Files.write(path, bytesToWrite, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to write to WAL log", e);
-        }
+    public CompletableFuture<Void> applyOperation(Operation operation) {
+        WALWriterBatcher.BatchItem batchItem = new WALWriterBatcher.BatchItem(operation, new CompletableFuture<>());
+        walWriterBatcher.offer(batchItem);
+
+        return batchItem.future().thenAccept(result -> {
+            if (result.exception() != null) {
+                throw new RuntimeException("Failed to write to WAL log", result.exception());
+            }
+        });
     }
 
     public int getLastCheckpointedSegmentId() {
