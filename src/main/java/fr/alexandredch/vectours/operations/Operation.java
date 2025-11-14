@@ -5,9 +5,12 @@ import java.io.Serializable;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.SerializationUtils;
 
-public sealed interface Operation extends Serializable permits Operation.Delete, Operation.Insert {
+public sealed interface Operation extends Serializable
+        permits Operation.Delete, Operation.Insert, Operation.InsertInSegment {
 
     record Insert(Vector vector) implements Operation {}
+
+    record InsertInSegment(Vector vector, int segmentId) implements Operation {}
 
     record Delete(String id) implements Operation {}
 
