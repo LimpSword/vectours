@@ -21,7 +21,8 @@ public final class Segment {
 
     public void insert(Vector vector) {
         if (isFull()) {
-            throw new IllegalStateException("Segment is full");
+            throw new IllegalStateException("Segment is full, len(vectors)=" + vectors.size() + ", len(tombstones)="
+                    + tombstones.size() + ", id=" + id);
         }
         tombstones.remove(vector.id());
 

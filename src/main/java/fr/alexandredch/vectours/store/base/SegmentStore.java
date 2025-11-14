@@ -31,6 +31,22 @@ public final class SegmentStore {
         this.writeAheadLogger = writeAheadLogger;
 
         currentSegment = new Segment(writeAheadLogger.getLatestSegmentIdIncludingUnclosed() + 1);
+        writeAheadLogger.newSegment(currentSegment);
+    }
+
+    public void createSegmentIfNotExists(int segmentId, boolean fromWAL) {
+        boolean exists = segments.stream().anyMatch(segment -> segment.getId() == segmentId)
+                || currentSegment.getId() == segmentId;
+        if (!exists) {
+            Segment segment = new Segment(segmentId);
+            segments.add(segment);
+
+            // WAL will read segment starts and will try to recreate them if they don't exist
+            // So we don't need to log them again
+            if (!fromWAL) {
+                writeAheadLogger.newSegment(segment);
+            }
+        }
     }
 
     public List<Segment> getSegments() {
@@ -62,6 +78,24 @@ public final class SegmentStore {
             writeAheadLogger.newSegment(currentSegment);
         }
         currentSegment.insert(vector);
+    }
+
+    public void insertVectorInSegment(Vector vector, int segmentId) {
+        if (!initialized) {
+            throw new IllegalStateException("SegmentStore is not initialized. Call loadFromDisk() first.");
+        }
+        if (segmentId == currentSegment.getId()) {
+            insertVector(vector);
+            return;
+        }
+        Segment segment = segments.stream()
+                .filter(s -> s.getId() == segmentId)
+                .findFirst()
+                .orElse(null);
+        if (segment == null) {
+            throw new IllegalArgumentException("Segment with id " + segmentId + " does not exist");
+        }
+        segment.insert(vector);
     }
 
     public void deleteVector(String id) {
@@ -136,11 +170,9 @@ public final class SegmentStore {
 
                     // Load vectors
                     if (Files.exists(vectorsPath)) {
-                        String lastLine = "No lines read";
                         try {
                             List<String> vectorLines = Files.readAllLines(vectorsPath);
                             for (String line : vectorLines) {
-                                lastLine = line;
                                 String[] parts = line.split(":");
                                 String id = parts[0];
                                 String valuesStr = parts[1].replaceAll("[\\[\\] ]", "");
@@ -151,7 +183,6 @@ public final class SegmentStore {
                                 segment.insert(vector);
                             }
                         } catch (IOException e) {
-                            System.out.println(lastLine);
                             throw new RuntimeException("Failed to load vectors from disk", e);
                         }
                     }
@@ -169,6 +200,7 @@ public final class SegmentStore {
                     }
 
                     segments.add(segment);
+                    currentSegment = segment;
                 });
             }
         } catch (java.io.IOException e) {

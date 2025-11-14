@@ -32,6 +32,10 @@ public final class WALWriterBatcher {
         process();
     }
 
+    public void shutdown() {
+        scheduler.shutdownNow();
+    }
+
     private void process() {
         // TODO: optimize by having a single thread processing batches with an atomic flag?
         scheduler.execute(() -> {

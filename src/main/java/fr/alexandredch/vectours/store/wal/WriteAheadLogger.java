@@ -1,5 +1,6 @@
 package fr.alexandredch.vectours.store.wal;
 
+import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.operations.Operation;
 import fr.alexandredch.vectours.store.base.Segment;
 import java.io.IOException;
@@ -26,21 +27,29 @@ public final class WriteAheadLogger {
         List<Operation> operations = new ArrayList<>();
         boolean startCollecting = lastCheckpointedSegmentId == -1;
         boolean next = false;
+        int currentSegmentId = -1;
         for (byte[] line : rawLines()) {
-            if (!startCollecting) {
-                try {
-                    int segmentId = Integer.parseInt(new String(line));
-                    if (segmentId == lastCheckpointedSegmentId) {
-                        next = true;
-                    } else if (next) {
-                        startCollecting = true;
-                    }
-                } catch (NumberFormatException e) {
-                    // Ignore non-segment id lines
+            try {
+                int segmentId = Integer.parseInt(new String(line));
+                currentSegmentId = segmentId;
+                if (segmentId == lastCheckpointedSegmentId) {
+                    next = true;
+                } else if (next) {
+                    startCollecting = true;
                 }
-            } else {
+
+                if (startCollecting) {
+                    operations.add(new Operation.CreateSegment(segmentId));
+                }
+            } catch (NumberFormatException e) {
+                // Ignore non-segment id lines
+            }
+            if (startCollecting) {
                 try {
                     Operation operation = Operation.fromBytes(line);
+                    if (operation instanceof Operation.Insert(Vector vector)) {
+                        operation = new Operation.InsertInSegment(vector, currentSegmentId);
+                    }
                     operations.add(operation);
                 } catch (Exception e) {
                     // Ignore invalid operation lines
@@ -101,6 +110,8 @@ public final class WriteAheadLogger {
         } catch (IOException e) {
             throw new RuntimeException("Failed to write WAL checkpoint", e);
         }
+
+        // TODO: truncate the log file to the last checkpointed segment id
     }
 
     public int getLatestSegmentIdIncludingUnclosed() {
@@ -156,5 +167,9 @@ public final class WriteAheadLogger {
         } catch (IOException e) {
             throw new RuntimeException("Failed to read WAL log", e);
         }
+    }
+
+    public void shutdown() {
+        walWriterBatcher.shutdown();
     }
 }

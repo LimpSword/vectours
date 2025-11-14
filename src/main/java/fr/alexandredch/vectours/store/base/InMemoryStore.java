@@ -47,13 +47,18 @@ public final class InMemoryStore implements Store {
         segmentStore.loadFromDisk();
 
         // Replay WAL from last checkpoint
-        // TODO: improve this by keeping the segments as defined in the WAL
         logger.info("Loading WAL operations from last checkpoint...");
         List<Operation> operations = writeAheadLogger.loadFromCheckpoint();
         for (Operation operation : operations) {
             switch (operation) {
+                case Operation.CreateSegment createSegment -> {
+                    segmentStore.createSegmentIfNotExists(createSegment.segmentId(), true);
+                }
                 case Operation.Insert insert -> {
                     segmentStore.insertVector(insert.vector());
+                }
+                case Operation.InsertInSegment insertInSegment -> {
+                    segmentStore.insertVectorInSegment(insertInSegment.vector(), insertInSegment.segmentId());
                 }
                 case Operation.Delete delete -> {
                     segmentStore.deleteVector(delete.id());
@@ -120,6 +125,7 @@ public final class InMemoryStore implements Store {
 
     public void shutdown() {
         scheduledExecutorService.shutdownNow();
+        writeAheadLogger.shutdown();
     }
 
     @Override

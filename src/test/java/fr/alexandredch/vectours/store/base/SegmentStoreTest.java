@@ -53,6 +53,21 @@ public final class SegmentStoreTest {
     }
 
     @Test
+    void createSegmentIfNotExists_createsSegmentWhenNoneExists() {
+        fixture.loadFromDisk();
+
+        assertThat(fixture.getSegments()).hasSize(1); // Current segment
+
+        fixture.createSegmentIfNotExists(1, true);
+
+        assertThat(fixture.getSegments()).hasSize(1); // Still only current segment
+
+        fixture.createSegmentIfNotExists(2, true);
+
+        assertThat(fixture.getSegments()).hasSize(2);
+    }
+
+    @Test
     void insertVector_requiresInitialization() {
         assertThrows(IllegalStateException.class, () -> fixture.insertVector(VECTOR_1));
     }

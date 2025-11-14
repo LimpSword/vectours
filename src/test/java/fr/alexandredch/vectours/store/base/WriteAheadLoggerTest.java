@@ -65,9 +65,12 @@ public class WriteAheadLoggerTest {
         fixture.applyOperation(op2).get();
 
         var operations = fixture.loadFromCheckpoint();
-        assertThat(operations.size()).isEqualTo(2);
-        assertThat(operations.get(0)).usingRecursiveComparison().isEqualTo(op1);
-        assertThat(operations.get(1)).usingRecursiveComparison().isEqualTo(op2);
+        assertThat(operations.size()).isEqualTo(3);
+        assertThat(operations.get(0))
+                .usingRecursiveComparison()
+                .isEqualTo(new Operation.CreateSegment(SEGMENT.getId()));
+        assertThat(operations.get(1)).usingRecursiveComparison().isEqualTo(op1);
+        assertThat(operations.get(2)).usingRecursiveComparison().isEqualTo(op2);
     }
 
     @Test
@@ -80,9 +83,12 @@ public class WriteAheadLoggerTest {
         fixture.applyOperation(op2).get();
 
         var operations = fixture.loadFromCheckpoint();
-        assertThat(operations.size()).isEqualTo(2);
-        assertThat(operations.get(0)).usingRecursiveComparison().isEqualTo(op1);
-        assertThat(operations.get(1)).usingRecursiveComparison().isEqualTo(op2);
+        assertThat(operations.size()).isEqualTo(3);
+        assertThat(operations.get(0))
+                .usingRecursiveComparison()
+                .isEqualTo(new Operation.CreateSegment(SEGMENT.getId()));
+        assertThat(operations.get(1)).usingRecursiveComparison().isEqualTo(op1);
+        assertThat(operations.get(2)).usingRecursiveComparison().isEqualTo(op2);
     }
 
     @Test
@@ -114,7 +120,11 @@ public class WriteAheadLoggerTest {
 
         var operations = fixture.loadFromCheckpoint();
         assertThat(operations.size()).isEqualTo(1);
-        assertThat(operations.getFirst()).usingRecursiveComparison().isEqualTo(operation1);
+        Operation operation = operations.getFirst();
+        assertThat(operation).isInstanceOf(Operation.InsertInSegment.class);
+        assertThat(((Operation.InsertInSegment) operation).vector())
+                .usingRecursiveComparison()
+                .isEqualTo(VECTOR_WITH_METADATA);
     }
 
     @Test

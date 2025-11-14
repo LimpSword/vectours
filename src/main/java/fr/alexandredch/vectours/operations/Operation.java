@@ -6,7 +6,9 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.SerializationUtils;
 
 public sealed interface Operation extends Serializable
-        permits Operation.Delete, Operation.Insert, Operation.InsertInSegment {
+        permits Operation.Delete, Operation.Insert, Operation.InsertInSegment, Operation.CreateSegment {
+
+    record CreateSegment(int segmentId) implements Operation {}
 
     record Insert(Vector vector) implements Operation {}
 
