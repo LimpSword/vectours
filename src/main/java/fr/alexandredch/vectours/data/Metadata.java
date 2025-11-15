@@ -1,6 +1,6 @@
 package fr.alexandredch.vectours.data;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.io.Serializable;
-import java.util.Map;
 
-public record Metadata(Map<String, Object> metadata) implements Serializable {}
+public record Metadata(JsonNode metadata) implements Serializable {}

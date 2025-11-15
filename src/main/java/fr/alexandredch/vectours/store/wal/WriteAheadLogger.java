@@ -2,7 +2,7 @@ package fr.alexandredch.vectours.store.wal;
 
 import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.operations.Operation;
-import fr.alexandredch.vectours.store.base.Segment;
+import fr.alexandredch.vectours.store.segment.Segment;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

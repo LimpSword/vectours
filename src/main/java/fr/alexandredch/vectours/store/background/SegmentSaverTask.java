@@ -1,7 +1,7 @@
 package fr.alexandredch.vectours.store.background;
 
-import fr.alexandredch.vectours.store.base.Segment;
-import fr.alexandredch.vectours.store.base.SegmentStore;
+import fr.alexandredch.vectours.store.segment.Segment;
+import fr.alexandredch.vectours.store.segment.SegmentStore;
 import fr.alexandredch.vectours.store.wal.WriteAheadLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

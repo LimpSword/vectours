@@ -4,7 +4,7 @@ import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.math.Cluster;
 import fr.alexandredch.vectours.math.KMeans;
 import fr.alexandredch.vectours.math.Vectors;
-import fr.alexandredch.vectours.store.base.SegmentStore;
+import fr.alexandredch.vectours.store.segment.SegmentStore;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;

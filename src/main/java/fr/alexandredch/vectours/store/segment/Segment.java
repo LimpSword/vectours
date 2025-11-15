@@ -1,4 +1,4 @@
-package fr.alexandredch.vectours.store.base;
+package fr.alexandredch.vectours.store.segment;
 
 import fr.alexandredch.vectours.data.Vector;
 import java.util.*;

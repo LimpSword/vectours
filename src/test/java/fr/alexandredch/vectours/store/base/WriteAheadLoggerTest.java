@@ -2,14 +2,15 @@ package fr.alexandredch.vectours.store.base;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.alexandredch.vectours.data.Metadata;
 import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.operations.Operation;
+import fr.alexandredch.vectours.store.segment.Segment;
 import fr.alexandredch.vectours.store.wal.WriteAheadLogger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.ArrayUtils;
@@ -26,7 +27,7 @@ public class WriteAheadLoggerTest {
     private static final Segment OLD_SEGMENT = new Segment(1);
     private static final Segment SEGMENT = new Segment(4);
 
-    private static final Metadata METADATA = new Metadata(Map.of("key1", "value1", "key2", "value2"));
+    private static final Metadata METADATA = new Metadata(new ObjectMapper().createObjectNode());
 
     private static final String VECTOR_ID_1 = "vec1";
     private static final Vector VECTOR_WITH_METADATA = new Vector(VECTOR_ID_1, new double[] {1.0, 2.0, 3.0}, METADATA);

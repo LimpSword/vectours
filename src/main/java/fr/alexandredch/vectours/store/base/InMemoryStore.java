@@ -8,6 +8,7 @@ import fr.alexandredch.vectours.math.Vectors;
 import fr.alexandredch.vectours.operations.Operation;
 import fr.alexandredch.vectours.store.Store;
 import fr.alexandredch.vectours.store.background.SegmentSaverTask;
+import fr.alexandredch.vectours.store.segment.SegmentStore;
 import fr.alexandredch.vectours.store.wal.WriteAheadLogger;
 import java.util.Comparator;
 import java.util.List;

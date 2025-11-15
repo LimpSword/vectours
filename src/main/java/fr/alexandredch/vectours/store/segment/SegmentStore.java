@@ -1,6 +1,5 @@
-package fr.alexandredch.vectours.store.base;
+package fr.alexandredch.vectours.store.segment;
 
-import fr.alexandredch.vectours.data.Metadata;
 import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.store.wal.WriteAheadLogger;
 import java.io.BufferedWriter;
@@ -20,6 +19,7 @@ public final class SegmentStore {
     public static final String TOMBSTONES_FILE = "tombstones";
 
     private final WriteAheadLogger writeAheadLogger;
+    private final SegmentVectorStore segmentVectorStore;
 
     private final List<Segment> segments = new ArrayList<>();
 
@@ -30,23 +30,10 @@ public final class SegmentStore {
     public SegmentStore(WriteAheadLogger writeAheadLogger) {
         this.writeAheadLogger = writeAheadLogger;
 
+        segmentVectorStore = new SegmentVectorStore();
+
         currentSegment = new Segment(writeAheadLogger.getLatestSegmentIdIncludingUnclosed() + 1);
         writeAheadLogger.newSegment(currentSegment);
-    }
-
-    public void createSegmentIfNotExists(int segmentId, boolean fromWAL) {
-        boolean exists = segments.stream().anyMatch(segment -> segment.getId() == segmentId)
-                || currentSegment.getId() == segmentId;
-        if (!exists) {
-            Segment segment = new Segment(segmentId);
-            segments.add(segment);
-
-            // WAL will read segment starts and will try to recreate them if they don't exist
-            // So we don't need to log them again
-            if (!fromWAL) {
-                writeAheadLogger.newSegment(segment);
-            }
-        }
     }
 
     public List<Segment> getSegments() {
@@ -64,6 +51,21 @@ public final class SegmentStore {
                         segments.stream().flatMap(segment -> segment.getVectors().stream()),
                         currentSegment.getVectors().stream())
                 .collect(Collectors.toList());
+    }
+
+    public void createSegmentIfNotExists(int segmentId, boolean fromWAL) {
+        boolean exists = segments.stream().anyMatch(segment -> segment.getId() == segmentId)
+                || currentSegment.getId() == segmentId;
+        if (!exists) {
+            Segment segment = new Segment(segmentId);
+            segments.add(segment);
+
+            // WAL will read segment starts and will try to recreate them if they don't exist
+            // So we don't need to log them again
+            if (!fromWAL) {
+                writeAheadLogger.newSegment(segment);
+            }
+        }
     }
 
     public void insertVector(Vector vector) {
@@ -126,31 +128,22 @@ public final class SegmentStore {
 
     public void saveSegmentToDisk(Segment segment) {
         Path segmentPath = Path.of(SEGMENTS_DIR, SEGMENT_FILE_PREFIX + segment.getId());
-        Path vectorsPath = segmentPath.resolve(VECTORS_FILE);
         Path tombstonesPath = segmentPath.resolve(TOMBSTONES_FILE);
 
+        segmentVectorStore.writeSegmentVectorsToDisk(segmentPath, segment);
+
         try {
-            Files.createDirectories(vectorsPath.getParent());
             Files.createDirectories(tombstonesPath.getParent());
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
             throw new RuntimeException("Failed to create directories for segment storage", e);
         }
 
-        try (BufferedWriter vectorWriter = Files.newBufferedWriter(vectorsPath);
-                BufferedWriter tombstoneWriter = Files.newBufferedWriter(tombstonesPath)) {
-
-            for (Vector vector : segment.getVectors()) {
-                // TODO: Save as bytes
-                vectorWriter.write(vector.toString());
-                vectorWriter.newLine();
-            }
-
+        try (BufferedWriter tombstoneWriter = Files.newBufferedWriter(tombstonesPath)) {
             for (String tombstoneId : segment.getTombstones()) {
                 tombstoneWriter.write(tombstoneId);
                 tombstoneWriter.newLine();
             }
-
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
             throw new RuntimeException("Failed to save segment to disk", e);
         }
     }
@@ -165,27 +158,11 @@ public final class SegmentStore {
                             Integer.parseInt(segmentDir.getFileName().toString().split("_")[1]);
                     Segment segment = new Segment(segmentId);
 
-                    Path vectorsPath = segmentDir.resolve(VECTORS_FILE);
                     Path tombstonesPath = segmentDir.resolve(TOMBSTONES_FILE);
 
                     // Load vectors
-                    if (Files.exists(vectorsPath)) {
-                        try {
-                            List<String> vectorLines = Files.readAllLines(vectorsPath);
-                            for (String line : vectorLines) {
-                                String[] parts = line.split(":");
-                                String id = parts[0];
-                                String valuesStr = parts[1].replaceAll("[\\[\\] ]", "");
-                                double[] values = Arrays.stream(valuesStr.split(","))
-                                        .mapToDouble(Double::parseDouble)
-                                        .toArray();
-                                Vector vector = new Vector(id, values, new Metadata(Map.of()));
-                                segment.insert(vector);
-                            }
-                        } catch (IOException e) {
-                            throw new RuntimeException("Failed to load vectors from disk", e);
-                        }
-                    }
+                    Arrays.stream(segmentVectorStore.readSegmentVectorsFromDisk(segmentDir))
+                            .forEach(segment::insert);
 
                     // Load tombstones
                     if (Files.exists(tombstonesPath)) {
@@ -194,16 +171,15 @@ public final class SegmentStore {
                             for (String id : tombstoneLines) {
                                 segment.delete(id);
                             }
-                        } catch (java.io.IOException e) {
+                        } catch (IOException e) {
                             throw new RuntimeException("Failed to load tombstones from disk", e);
                         }
                     }
 
                     segments.add(segment);
-                    currentSegment = segment;
                 });
             }
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
             throw new RuntimeException("Failed to load segments from disk", e);
         }
 

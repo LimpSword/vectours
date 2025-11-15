@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import fr.alexandredch.vectours.data.Vector;
+import fr.alexandredch.vectours.store.segment.Segment;
+import fr.alexandredch.vectours.store.segment.SegmentStore;
 import fr.alexandredch.vectours.store.wal.WriteAheadLogger;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -189,31 +191,9 @@ public final class SegmentStoreTest {
         segment.delete(VECTOR_ID_2);
 
         fixture.saveSegmentToDisk(segment);
+        fixture.loadFromDisk();
 
-        // There should be a folder named SegmentStore.SEGMENTS_DIR/SegmentStore.SEGMENT_FILE_PREFIX + "0"
-        // containing two files: SegmentStore.VECTORS_FILE and SegmentStore.TOMBSTONES_FILE
-        Path segmentPath = Path.of(SegmentStore.SEGMENTS_DIR, SegmentStore.SEGMENT_FILE_PREFIX + segment.getId());
-        Path vectorsPath = segmentPath.resolve(SegmentStore.VECTORS_FILE);
-        Path tombstonesPath = segmentPath.resolve(SegmentStore.TOMBSTONES_FILE);
-
-        assertThat(vectorsPath).exists();
-        assertThat(tombstonesPath).exists();
-
-        // Vectors file should contain VECTOR_1 but not VECTOR_2 (because it was deleted)
-        try {
-            String vectorsContent = Files.readString(vectorsPath);
-            assertThat(vectorsContent).contains(VECTOR_ID_1);
-            assertThat(vectorsContent).doesNotContain(VECTOR_ID_2);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        // Tombstones file should contain VECTOR_ID_2
-        try {
-            String tombstonesContent = Files.readString(tombstonesPath);
-            assertThat(tombstonesContent).contains(VECTOR_ID_2);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        assertThat(fixture.getAllVectors().getFirst()).isEqualTo(VECTOR_1);
+        assertThat(fixture.getAllVectors()).containsExactly(VECTOR_1);
     }
 }
