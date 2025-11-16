@@ -1,4 +1,4 @@
-package fr.alexandredch.vectours.store.segment;
+package fr.alexandredch.vectours.store.segment.vector;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.smile.SmileFactory;
@@ -6,7 +6,7 @@ import fr.alexandredch.vectours.data.Metadata;
 import fr.alexandredch.vectours.data.Vector;
 import java.io.*;
 
-public final class SegmentSerializer {
+public final class VectorSerializer {
 
     private final ObjectMapper objectMapper = new ObjectMapper(new SmileFactory());
 

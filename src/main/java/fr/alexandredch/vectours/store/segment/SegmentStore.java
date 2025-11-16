@@ -1,6 +1,7 @@
 package fr.alexandredch.vectours.store.segment;
 
 import fr.alexandredch.vectours.data.Vector;
+import fr.alexandredch.vectours.store.segment.vector.SegmentVectorStore;
 import fr.alexandredch.vectours.store.wal.WriteAheadLogger;
 import java.io.BufferedWriter;
 import java.io.File;
