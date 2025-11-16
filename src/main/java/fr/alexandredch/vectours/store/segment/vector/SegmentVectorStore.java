@@ -4,7 +4,6 @@ import com.google.common.primitives.Bytes;
 import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.store.segment.Segment;
 import fr.alexandredch.vectours.store.segment.SegmentStore;
-
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
