@@ -40,9 +40,7 @@ public final class DefaultIVFIndex implements IVFIndex {
     public void insertVector(Vector vector) {
         // Add to the closest cluster or rebuild the index
         if (this.built) {
-            Cluster<Vector> closestCluster =
-                    findClosestClusters(vector.values(), 1).findFirst().orElseThrow();
-            closestCluster.add(vector);
+            findClosestClusters(vector.values(), 1).findFirst().ifPresent(c -> c.add(vector));
         } else if (segmentStore.getTotalVectorCount() > MIN_VECTORS_FOR_IVF_INDEX) {
             // Rebuild the index
             List<Vector> vectors = segmentStore.getAllVectors();

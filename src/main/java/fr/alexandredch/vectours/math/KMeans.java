@@ -12,7 +12,10 @@ public final class KMeans {
 
     public static List<Cluster<Vector>> fit(List<Vector> data) {
         int clusterCount = (int) (Math.log(data.size()) * 3);
+        return fit(data, clusterCount);
+    }
 
+    public static List<Cluster<Vector>> fit(List<Vector> data, int clusterCount) {
         // Create clusters with random centroids
         List<Cluster<Vector>> clusters = generateRandomClusters(data, clusterCount);
 

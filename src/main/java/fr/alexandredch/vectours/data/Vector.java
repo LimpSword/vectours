@@ -3,8 +3,9 @@ package fr.alexandredch.vectours.data;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
-public record Vector(String id, double[] values, Metadata metadata) implements Serializable {
+public record Vector(String id, double[] values, @Nullable Metadata metadata) implements Serializable {
 
     @Override
     public String toString() {

@@ -1,52 +1,143 @@
 package fr.alexandredch.vectours.index.pq;
 
 import fr.alexandredch.vectours.data.Vector;
-import fr.alexandredch.vectours.index.ivf.QuantizedIVFIndex;
+import fr.alexandredch.vectours.math.Cluster;
+import fr.alexandredch.vectours.math.KMeans;
 import fr.alexandredch.vectours.math.Vectors;
-import java.util.Arrays;
-import java.util.List;
+import fr.alexandredch.vectours.store.segment.SegmentStore;
+import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class VectorProductQuantization {
 
-    private final QuantizedIVFIndex quantizedIVFIndex;
+    private static final int MIN_VECTORS_FOR_PRODUCT_QUANTIZATION = 10_000;
+    private static final int DEFAULT_CENTROIDS_PER_SUBSPACE = 256;
 
-    public VectorProductQuantization(QuantizedIVFIndex quantizedIVFIndex) {
-        this.quantizedIVFIndex = quantizedIVFIndex;
+    private static final Logger logger = LoggerFactory.getLogger(VectorProductQuantization.class);
+
+    private final int subSpacesCount;
+    private final int centroidsPerSubSpaceCount;
+    private final int subvectorDim; // Dimension of each subspace
+
+    // codebooks[m] = centroids for subspace m
+    // codebooks[m][k] = k-th centroid in subspace m (array of size subvectorDim)
+    private double[][][] codebooks;
+
+    // Store encoded vectors: vectorId -> byte array of codes
+    private final Map<String, byte[]> encodedVectors;
+    private final SegmentStore segmentStore;
+
+    public VectorProductQuantization(SegmentStore segmentStore, int dimension) {
+        this.segmentStore = segmentStore;
+        this.subSpacesCount = calculateOptimalSubSpacesCount(dimension);
+        this.centroidsPerSubSpaceCount = DEFAULT_CENTROIDS_PER_SUBSPACE;
+        this.subvectorDim = dimension / subSpacesCount;
+        this.encodedVectors = new HashMap<>();
+
+        if (dimension % subSpacesCount != 0) {
+            logger.error("Dimension {} is not divisible by subspaces count {}", dimension, subSpacesCount);
+        }
     }
 
-    public Vector quantizeVector(Vector vector) {
-        int dimension = vector.values().length;
-        int numberOfSubVectors = getNumberOfSubVectors(dimension);
+    public void buildSubspaces() {
+        List<Vector> vectors = segmentStore.getAllVectors();
 
-        double[] quantizedVector = new double[numberOfSubVectors];
-
-        for (int i = 0; i < dimension; i += numberOfSubVectors) {
-            int subVectorSize = Math.min(numberOfSubVectors, dimension - i);
-            double[] subVector = Arrays.copyOfRange(vector.values(), i, i + subVectorSize);
-            int index = Math.divideExact(i, numberOfSubVectors);
-
-            // Find the closest sub-vector (centroid)
-            quantizedVector[index] = findClosestCentroid(subVector, index);
+        if (vectors.size() < MIN_VECTORS_FOR_PRODUCT_QUANTIZATION) {
+            logger.debug("Not enough vectors to build subspaces, skipping");
+            return;
         }
 
-        return new Vector(vector.id(), quantizedVector, vector.metadata());
-    }
+        logger.debug("Found {} vectors to build subspaces", vectors.size());
+        codebooks = new double[subSpacesCount][centroidsPerSubSpaceCount][subvectorDim];
 
-    private double findClosestCentroid(double[] subVector, int index) {
-        List<double[]> centroids = quantizedIVFIndex.getCentroids(index);
-        double minDistance = Double.MAX_VALUE;
-        int centroidIndex = 0;
-        for (int i = 0; i < centroids.size(); i++) {
-            double distance = Vectors.squaredEuclidianDistance(subVector, centroids.get(i));
-            if (distance < minDistance) {
-                minDistance = distance;
-                centroidIndex = i;
+        // For each subspace
+        for (int m = 0; m < subSpacesCount; m++) {
+            logger.debug("Building subspace {}...", m);
+
+            // Extract all subvectors for this subspace from all training vectors
+            List<double[]> subvectors = new ArrayList<>();
+            for (Vector vector : vectors) {
+                double[] subvector = extractSubvector(vector.values(), m);
+                subvectors.add(subvector);
+            }
+
+            // Run k-means on these subvectors to get K centroids
+            List<Vector> subvectorVectors = new ArrayList<>();
+            for (int i = 0; i < subvectors.size(); i++) {
+                subvectorVectors.add(new Vector("sub_" + i, subvectors.get(i), null));
+            }
+
+            List<Cluster<Vector>> clusters = KMeans.fit(subvectorVectors, centroidsPerSubSpaceCount);
+
+            // Store the centroids in the codebook
+            for (int k = 0; k < Math.min(centroidsPerSubSpaceCount, clusters.size()); k++) {
+                codebooks[m][k] = clusters.get(k).getCentroid();
             }
         }
-        return centroids.get(centroidIndex)[0];
+
+        // Encode all vectors
+        logger.debug("Encoding vectors...");
+        for (Vector vector : vectors) {
+            byte[] codes = encode(vector.values());
+            encodedVectors.put(vector.id(), codes);
+        }
+
+        logger.info("Subspaces built");
     }
 
-    private int getNumberOfSubVectors(int dimension) {
-        return Math.max(2, (int) Math.ceil(Math.sqrt(dimension)));
+    /**
+     * Extract the m-th subvector from a vector
+     */
+    private double[] extractSubvector(double[] vector, int m) {
+        double[] subvector = new double[subvectorDim];
+        int startIdx = m * subvectorDim;
+        System.arraycopy(vector, startIdx, subvector, 0, subvectorDim);
+        return subvector;
+    }
+
+    /**
+     * Encode a vector into PQ codes
+     */
+    public byte[] encode(double[] vector) {
+        if (codebooks == null) {
+            throw new IllegalStateException("Codebooks not trained. Call buildCentroids() first.");
+        }
+
+        byte[] codes = new byte[subSpacesCount];
+
+        for (int m = 0; m < subSpacesCount; m++) {
+            double[] subvector = extractSubvector(vector, m);
+            int nearestCentroid = findNearestCentroid(subvector, codebooks[m]);
+            codes[m] = (byte) nearestCentroid;
+        }
+
+        return codes;
+    }
+
+    /**
+     * Find the nearest centroid to a subvector
+     */
+    private int findNearestCentroid(double[] subvector, double[][] centroids) {
+        int nearest = 0;
+        double minDist = Double.MAX_VALUE;
+
+        for (int k = 0; k < centroids.length; k++) {
+            double dist = Vectors.squaredEuclidianDistance(subvector, centroids[k]);
+            if (dist < minDist) {
+                minDist = dist;
+                nearest = k;
+            }
+        }
+
+        return nearest;
+    }
+
+    private int calculateOptimalSubSpacesCount(int dimension) {
+        if (dimension <= 128) return 4;
+        if (dimension <= 256) return 8;
+        if (dimension <= 512) return 16;
+        if (dimension <= 1024) return 32;
+        return 64;
     }
 }

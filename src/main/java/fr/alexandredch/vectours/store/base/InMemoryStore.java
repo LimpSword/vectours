@@ -4,6 +4,7 @@ import fr.alexandredch.vectours.data.SearchParameters;
 import fr.alexandredch.vectours.data.SearchResult;
 import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.index.ivf.DefaultIVFIndex;
+import fr.alexandredch.vectours.index.pq.VectorProductQuantization;
 import fr.alexandredch.vectours.math.Vectors;
 import fr.alexandredch.vectours.operations.Operation;
 import fr.alexandredch.vectours.store.Store;
@@ -28,6 +29,7 @@ public final class InMemoryStore implements Store {
     private final WriteAheadLogger writeAheadLogger;
     private final SegmentStore segmentStore;
     private final SegmentSaverTask segmentSaverTask;
+    private final VectorProductQuantization vectorProductQuantization;
 
     private DefaultIVFIndex defaultIvfIndex;
 
@@ -35,6 +37,8 @@ public final class InMemoryStore implements Store {
         writeAheadLogger = new WriteAheadLogger();
         segmentStore = new SegmentStore(writeAheadLogger);
         segmentSaverTask = new SegmentSaverTask(writeAheadLogger, segmentStore);
+        // TODO: create 1 per dimension
+        vectorProductQuantization = new VectorProductQuantization(segmentStore, 0);
 
         scheduledExecutorService.scheduleAtFixedRate(segmentSaverTask, 0, 30, TimeUnit.SECONDS);
     }
@@ -70,6 +74,10 @@ public final class InMemoryStore implements Store {
         logger.info("Creating IVF index...");
         defaultIvfIndex = new DefaultIVFIndex(segmentStore);
         logger.info("Finished initializing InMemoryStore from disk.");
+
+        logger.info("Building PQ centroids...");
+        vectorProductQuantization.buildSubspaces();
+        logger.info("Finished building PQ centroids.");
     }
 
     @Override
@@ -79,6 +87,7 @@ public final class InMemoryStore implements Store {
             // Insert into its segment and IVF index
             segmentStore.insertVector(vector);
             defaultIvfIndex.insertVector(vector);
+            vectorProductQuantization.buildSubspaces();
         });
     }
 
