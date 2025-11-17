@@ -3,7 +3,7 @@ package fr.alexandredch.vectours.store.base;
 import static org.junit.jupiter.api.Assertions.*;
 
 import fr.alexandredch.vectours.data.Vector;
-import fr.alexandredch.vectours.index.IVFIndex;
+import fr.alexandredch.vectours.index.ivf.DefaultIVFIndex;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -91,7 +91,7 @@ class InMemoryStoreTest {
         // There is a minimal number of vectors required to build the IVF index
         List<Vector> toInsert = new ArrayList<>();
         toInsert.add(VECTOR_1);
-        for (int i = 0; i < IVFIndex.MIN_VECTORS_FOR_IVF_INDEX; i++) {
+        for (int i = 0; i < DefaultIVFIndex.MIN_VECTORS_FOR_IVF_INDEX; i++) {
             toInsert.add(VECTOR_2.withId(VECTOR_ID_2 + "_" + i));
         }
         toInsert.add(VECTOR_3);

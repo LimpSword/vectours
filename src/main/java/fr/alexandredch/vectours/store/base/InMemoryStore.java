@@ -3,7 +3,7 @@ package fr.alexandredch.vectours.store.base;
 import fr.alexandredch.vectours.data.SearchParameters;
 import fr.alexandredch.vectours.data.SearchResult;
 import fr.alexandredch.vectours.data.Vector;
-import fr.alexandredch.vectours.index.IVFIndex;
+import fr.alexandredch.vectours.index.ivf.DefaultIVFIndex;
 import fr.alexandredch.vectours.math.Vectors;
 import fr.alexandredch.vectours.operations.Operation;
 import fr.alexandredch.vectours.store.Store;
@@ -29,7 +29,7 @@ public final class InMemoryStore implements Store {
     private final SegmentStore segmentStore;
     private final SegmentSaverTask segmentSaverTask;
 
-    private IVFIndex ivfIndex;
+    private DefaultIVFIndex defaultIvfIndex;
 
     public InMemoryStore() {
         writeAheadLogger = new WriteAheadLogger();
@@ -68,7 +68,7 @@ public final class InMemoryStore implements Store {
         }
 
         logger.info("Creating IVF index...");
-        ivfIndex = new IVFIndex(segmentStore);
+        defaultIvfIndex = new DefaultIVFIndex(segmentStore);
         logger.info("Finished initializing InMemoryStore from disk.");
     }
 
@@ -78,7 +78,7 @@ public final class InMemoryStore implements Store {
         return writeAheadLogger.applyOperation(new Operation.Insert(vector)).thenRun(() -> {
             // Insert into its segment and IVF index
             segmentStore.insertVector(vector);
-            ivfIndex.insertVector(vector);
+            defaultIvfIndex.insertVector(vector);
         });
     }
 
@@ -90,8 +90,8 @@ public final class InMemoryStore implements Store {
     @Override
     public List<SearchResult> search(SearchParameters searchParameters) {
         double[] searchedVector = searchParameters.searchedVector();
-        if (searchParameters.allowIVF() && ivfIndex.canSearch()) {
-            return ivfIndex.search(searchedVector, searchParameters.topK()).stream()
+        if (searchParameters.allowIVF() && defaultIvfIndex.canSearch()) {
+            return defaultIvfIndex.search(searchedVector, searchParameters.topK()).stream()
                     .map(v -> new SearchResult(
                             v.id(), Vectors.squaredEuclidianDistance(v.values(), searchedVector), v.metadata()))
                     .toList();

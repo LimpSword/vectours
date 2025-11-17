@@ -1,4 +1,4 @@
-package fr.alexandredch.vectours.index;
+package fr.alexandredch.vectours.index.ivf;
 
 import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.math.Cluster;
@@ -10,7 +10,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 
-public final class IVFIndex {
+public final class DefaultIVFIndex implements IVFIndex {
+
+    // TODO: we need an index per dimension
 
     public static final int MIN_VECTORS_FOR_IVF_INDEX = 10_000;
 
@@ -18,7 +20,7 @@ public final class IVFIndex {
     private final SegmentStore segmentStore;
     private boolean built = false;
 
-    public IVFIndex(SegmentStore segmentStore) {
+    public DefaultIVFIndex(SegmentStore segmentStore) {
         this.segmentStore = segmentStore;
         List<Vector> vectors = segmentStore.getAllVectors();
         if (vectors.size() <= MIN_VECTORS_FOR_IVF_INDEX) {
@@ -29,10 +31,12 @@ public final class IVFIndex {
         this.built = true;
     }
 
+    @Override
     public boolean canSearch() {
         return this.built;
     }
 
+    @Override
     public void insertVector(Vector vector) {
         // Add to the closest cluster or rebuild the index
         if (this.built) {
@@ -48,6 +52,7 @@ public final class IVFIndex {
         }
     }
 
+    @Override
     public List<Vector> search(double[] vector, int nprobe) {
         List<Vector> result = new ArrayList<>();
 
