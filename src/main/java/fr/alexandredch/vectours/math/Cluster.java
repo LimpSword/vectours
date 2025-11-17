@@ -1,14 +1,13 @@
 package fr.alexandredch.vectours.math;
 
-import fr.alexandredch.vectours.data.Vector;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public final class Cluster {
+public final class Cluster<T> {
 
     private final double[] centroid;
-    private List<Vector> data;
+    private List<T> data;
 
     public Cluster(double[] centroid) {
         this.centroid = centroid;
@@ -19,15 +18,15 @@ public final class Cluster {
         return centroid;
     }
 
-    public List<Vector> getData() {
+    public List<T> getData() {
         return data;
     }
 
-    public void setData(List<Vector> data) {
+    public void setData(List<T> data) {
         this.data = data;
     }
 
-    public void addVector(Vector vector) {
+    public void add(T vector) {
         this.data.add(vector);
     }
 
@@ -35,7 +34,7 @@ public final class Cluster {
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
-        Cluster cluster = (Cluster) obj;
+        Cluster<T> cluster = (Cluster<T>) obj;
         return Arrays.equals(centroid, cluster.centroid);
     }
 }

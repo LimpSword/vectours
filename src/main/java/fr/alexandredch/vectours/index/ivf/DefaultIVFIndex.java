@@ -16,7 +16,7 @@ public final class DefaultIVFIndex implements IVFIndex {
 
     public static final int MIN_VECTORS_FOR_IVF_INDEX = 10_000;
 
-    private final List<Cluster> clusters;
+    private final List<Cluster<Vector>> clusters;
     private final SegmentStore segmentStore;
     private boolean built = false;
 
@@ -40,9 +40,9 @@ public final class DefaultIVFIndex implements IVFIndex {
     public void insertVector(Vector vector) {
         // Add to the closest cluster or rebuild the index
         if (this.built) {
-            Cluster closestCluster =
+            Cluster<Vector> closestCluster =
                     findClosestClusters(vector.values(), 1).findFirst().orElseThrow();
-            closestCluster.addVector(vector);
+            closestCluster.add(vector);
         } else if (segmentStore.getTotalVectorCount() > MIN_VECTORS_FOR_IVF_INDEX) {
             // Rebuild the index
             List<Vector> vectors = segmentStore.getAllVectors();
@@ -67,14 +67,14 @@ public final class DefaultIVFIndex implements IVFIndex {
                 .toList();
     }
 
-    private List<Vector> searchInCluster(Cluster cluster, double[] vector, int nprobe) {
+    private List<Vector> searchInCluster(Cluster<Vector> cluster, double[] vector, int nprobe) {
         return cluster.getData().stream()
                 .sorted(Comparator.comparingDouble(v -> Vectors.squaredEuclidianDistance(v.values(), vector)))
                 .limit(nprobe)
                 .toList();
     }
 
-    private Stream<Cluster> findClosestClusters(double[] vector, int nprobe) {
+    private Stream<Cluster<Vector>> findClosestClusters(double[] vector, int nprobe) {
         return clusters.stream()
                 .sorted(Comparator.comparingDouble(c -> Vectors.squaredEuclidianDistance(c.getCentroid(), vector)))
                 .limit(nprobe);
