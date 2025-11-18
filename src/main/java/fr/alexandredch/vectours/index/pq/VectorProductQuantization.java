@@ -1,5 +1,6 @@
 package fr.alexandredch.vectours.index.pq;
 
+import fr.alexandredch.vectours.data.SearchResult;
 import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.math.Cluster;
 import fr.alexandredch.vectours.math.KMeans;
@@ -56,22 +57,17 @@ public final class VectorProductQuantization {
             logger.debug("Building subspace {}...", m);
 
             // Extract all subvectors for this subspace from all training vectors
-            List<double[]> subvectors = new ArrayList<>();
-            for (Vector vector : vectors) {
+            List<Vector> subvectors = new ArrayList<>();
+            for (int i = 0; i < vectors.size(); i++) {
+                Vector vector = vectors.get(i);
                 double[] subvector = extractSubvector(vector.values(), m);
-                subvectors.add(subvector);
+                subvectors.add(new Vector("sub_" + i, subvector, null));
             }
 
             // Run k-means on these subvectors to get K centroids
-            List<Vector> subvectorVectors = new ArrayList<>();
-            for (int i = 0; i < subvectors.size(); i++) {
-                subvectorVectors.add(new Vector("sub_" + i, subvectors.get(i), null));
-            }
+            List<Cluster<Vector>> clusters = KMeans.fit(subvectors, centroidsPerSubSpaceCount);
 
-            List<Cluster<Vector>> clusters = KMeans.fit(subvectorVectors, centroidsPerSubSpaceCount);
-
-            // Store the centroids in the codebook
-            for (int k = 0; k < Math.min(centroidsPerSubSpaceCount, clusters.size()); k++) {
+            for (int k = 0; k < centroidsPerSubSpaceCount; k++) {
                 codebooks[m][k] = clusters.get(k).getCentroid();
             }
         }
@@ -84,6 +80,52 @@ public final class VectorProductQuantization {
         }
 
         logger.info("Subspaces built");
+    }
+
+    public List<SearchResult> approxSearch(double[] query, int nprobe) {
+        if (codebooks == null || encodedVectors.isEmpty()) {
+            throw new IllegalStateException("Index not built. Call buildSubspaces() first.");
+        }
+
+        double[][] distanceTable = buildDistanceTable(query);
+
+        return encodedVectors.entrySet().stream()
+                .map(entry ->
+                        new SearchResult(entry.getKey(), asymmetricDistance(distanceTable, entry.getValue()), null))
+                .sorted(Comparator.comparingDouble(SearchResult::distance))
+                .limit(nprobe)
+                .toList();
+    }
+
+    /**
+     * distanceTable[m][k] = ||query_subvector_m - codebook[m][k]||^2
+     */
+    private double[][] buildDistanceTable(double[] query) {
+        double[][] distanceTable = new double[subSpacesCount][centroidsPerSubSpaceCount];
+
+        for (int m = 0; m < subSpacesCount; m++) {
+            double[] querySubvector = extractSubvector(query, m);
+
+            for (int k = 0; k < centroidsPerSubSpaceCount; k++) {
+                distanceTable[m][k] = Vectors.squaredEuclidianDistance(querySubvector, codebooks[m][k]);
+            }
+        }
+
+        return distanceTable;
+    }
+
+    /**
+     * Compute asymmetric distance from query to encoded vector using pre-computed distance table
+     */
+    private double asymmetricDistance(double[][] distanceTable, byte[] codes) {
+        double totalDist = 0;
+
+        for (int m = 0; m < subSpacesCount; m++) {
+            int code = codes[m] & 0xFF; // Convert to unsigned
+            totalDist += distanceTable[m][code];
+        }
+
+        return Math.sqrt(totalDist);
     }
 
     /**
@@ -101,7 +143,7 @@ public final class VectorProductQuantization {
      */
     public byte[] encode(double[] vector) {
         if (codebooks == null) {
-            throw new IllegalStateException("Codebooks not trained. Call buildCentroids() first.");
+            throw new IllegalStateException("Codebooks not trained. Call buildSubspaces() first.");
         }
 
         byte[] codes = new byte[subSpacesCount];
