@@ -1,5 +1,6 @@
 package fr.alexandredch.vectours.index.ivf;
 
+import com.google.common.annotations.VisibleForTesting;
 import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.math.Cluster;
 import fr.alexandredch.vectours.math.KMeans;
@@ -63,6 +64,11 @@ public final class DefaultIVFIndex implements IVFIndex {
                 .sorted(Comparator.comparingDouble(v -> Vectors.squaredEuclidianDistance(v.values(), vector)))
                 .limit(nprobe)
                 .toList();
+    }
+
+    @VisibleForTesting
+    public List<Cluster<Vector>> getClusters() {
+        return clusters;
     }
 
     private List<Vector> searchInCluster(Cluster<Vector> cluster, double[] vector, int nprobe) {
