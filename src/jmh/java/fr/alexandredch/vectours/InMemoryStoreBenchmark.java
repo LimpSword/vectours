@@ -77,7 +77,12 @@ public class InMemoryStoreBenchmark {
     @Fork(value = 1, warmups = 1)
     @BenchmarkMode(Mode.AverageTime)
     public void searchBruteforce(SearchState state, Blackhole blackhole) {
-        blackhole.consume(state.store.search(new SearchParameters(new double[] {5000, 5001, 5002}, false, 30)));
+        blackhole.consume(state.store.search(new SearchParameters.Builder()
+                .searchedVector(new double[] {5000, 5001, 5002})
+                .allowIVF(false)
+                .usePQ(false)
+                .topK(30)
+                .build()));
     }
 
     @Benchmark
@@ -85,7 +90,25 @@ public class InMemoryStoreBenchmark {
     @Fork(value = 1, warmups = 1)
     @BenchmarkMode(Mode.AverageTime)
     public void searchIVF(SearchState state, Blackhole blackhole) {
-        blackhole.consume(state.store.search(new SearchParameters(new double[] {5000, 5001, 5002}, true, 30)));
+        blackhole.consume(state.store.search(new SearchParameters.Builder()
+                .searchedVector(new double[] {5000, 5001, 5002})
+                .allowIVF(true)
+                .usePQ(false)
+                .topK(30)
+                .build()));
+    }
+
+    @Benchmark
+    @OutputTimeUnit(TimeUnit.MILLISECONDS)
+    @Fork(value = 1, warmups = 1)
+    @BenchmarkMode(Mode.AverageTime)
+    public void searchPQ(SearchState state, Blackhole blackhole) {
+        blackhole.consume(state.store.search(new SearchParameters.Builder()
+                .searchedVector(new double[] {5000, 5001, 5002})
+                .allowIVF(false)
+                .usePQ(true)
+                .topK(30)
+                .build()));
     }
 
     @Benchmark

@@ -87,13 +87,18 @@ public final class InMemoryStore implements Store {
             // Insert into its segment and IVF index
             segmentStore.insertVector(vector);
             defaultIvfIndex.insertVector(vector);
+
+            vectorProductQuantization.insertVector(vector);
             vectorProductQuantization.buildSubspaces();
         });
     }
 
     @Override
     public List<SearchResult> search(double[] searchedVector, int k) {
-        return search(new SearchParameters(searchedVector, true, k));
+        return search(new SearchParameters.Builder()
+                .searchedVector(searchedVector)
+                .topK(k)
+                .build());
     }
 
     @Override
@@ -104,6 +109,9 @@ public final class InMemoryStore implements Store {
                     .map(v -> new SearchResult(
                             v.id(), Vectors.squaredEuclidianDistance(v.values(), searchedVector), v.metadata()))
                     .toList();
+        }
+        if (searchParameters.usePQ()) {
+            return vectorProductQuantization.approxSearch(searchedVector, searchParameters.topK());
         }
         return segmentStore.getAllVectors().stream()
                 .map(v -> new SearchResult(

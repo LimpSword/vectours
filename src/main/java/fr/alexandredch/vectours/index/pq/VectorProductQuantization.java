@@ -29,6 +29,8 @@ public final class VectorProductQuantization {
     private final Map<String, byte[]> encodedVectors;
     private final SegmentStore segmentStore;
 
+    private boolean built = false;
+
     public VectorProductQuantization(SegmentStore segmentStore, int dimension) {
         this.segmentStore = segmentStore;
         this.subSpacesCount = calculateOptimalSubSpacesCount(dimension);
@@ -41,11 +43,24 @@ public final class VectorProductQuantization {
         }
     }
 
+    public void insertVector(Vector vector) {
+        if (!built) {
+            // Index will be built later and the vector encoded at that time
+            return;
+        }
+        byte[] codes = encode(vector.values());
+        encodedVectors.put(vector.id(), codes);
+    }
+
     public void buildSubspaces() {
         List<Vector> vectors = segmentStore.getAllVectors();
 
         if (vectors.size() < MIN_VECTORS_FOR_PRODUCT_QUANTIZATION) {
             logger.debug("Not enough vectors to build subspaces, skipping");
+            return;
+        }
+        if (built) {
+            // Just insert the new vector
             return;
         }
 
@@ -80,6 +95,7 @@ public final class VectorProductQuantization {
         }
 
         logger.info("Subspaces built");
+        built = true;
     }
 
     public List<SearchResult> approxSearch(double[] query, int nprobe) {
