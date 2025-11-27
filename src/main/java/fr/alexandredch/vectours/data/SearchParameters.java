@@ -1,11 +1,12 @@
 package fr.alexandredch.vectours.data;
 
-public record SearchParameters(double[] searchedVector, boolean allowIVF, boolean usePQ, int topK) {
+public record SearchParameters(double[] searchedVector, boolean allowIVF, boolean usePQ, boolean useHNSW, int topK) {
 
     public static class Builder {
         private double[] searchedVector;
         private boolean allowIVF = true;
         private boolean usePQ = false;
+        private boolean useHNSW = false;
         private int topK = 10;
 
         public Builder searchedVector(double[] searchedVector) {
@@ -23,13 +24,18 @@ public record SearchParameters(double[] searchedVector, boolean allowIVF, boolea
             return this;
         }
 
+        public Builder useHNSW(boolean useHNSW) {
+            this.useHNSW = useHNSW;
+            return this;
+        }
+
         public Builder topK(int topK) {
             this.topK = topK;
             return this;
         }
 
         public SearchParameters build() {
-            return new SearchParameters(searchedVector, allowIVF, usePQ, topK);
+            return new SearchParameters(searchedVector, allowIVF, usePQ, useHNSW, topK);
         }
     }
 }

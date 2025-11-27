@@ -2,7 +2,6 @@ package fr.alexandredch.vectours.index.hnsw;
 
 import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.store.segment.SegmentStore;
-
 import java.util.List;
 
 public final class HNSWIndex {
@@ -37,11 +36,7 @@ public final class HNSWIndex {
         return null;
     }
 
-    public void insertVector(Vector vector) {
+    public void insertVector(Vector vector) {}
 
-    }
-
-    private void buildIndex() {
-
-    }
+    private void buildIndex() {}
 }

@@ -120,6 +120,12 @@ public final class InMemoryStore implements Store {
         if (searchParameters.usePQ()) {
             return vectorProductQuantization.approxSearch(searchedVector, searchParameters.topK());
         }
+        if (searchParameters.useHNSW()) {
+            return hnswIndex.search(searchedVector, searchParameters.topK()).stream()
+                    .map(v -> new SearchResult(
+                            v.id(), Vectors.squaredEuclidianDistance(v.values(), searchedVector), v.metadata()))
+                    .toList();
+        }
         return segmentStore.getAllVectors().stream()
                 .map(v -> new SearchResult(
                         v.id(), Vectors.squaredEuclidianDistance(v.values(), searchedVector), v.metadata()))
