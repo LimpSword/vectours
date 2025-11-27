@@ -3,6 +3,7 @@ package fr.alexandredch.vectours.store.base;
 import fr.alexandredch.vectours.data.SearchParameters;
 import fr.alexandredch.vectours.data.SearchResult;
 import fr.alexandredch.vectours.data.Vector;
+import fr.alexandredch.vectours.index.hnsw.HNSWIndex;
 import fr.alexandredch.vectours.index.ivf.DefaultIVFIndex;
 import fr.alexandredch.vectours.index.pq.VectorProductQuantization;
 import fr.alexandredch.vectours.math.Vectors;
@@ -32,6 +33,7 @@ public final class InMemoryStore implements Store {
     private final VectorProductQuantization vectorProductQuantization;
 
     private DefaultIVFIndex defaultIvfIndex;
+    private HNSWIndex hnswIndex;
 
     public InMemoryStore() {
         writeAheadLogger = new WriteAheadLogger();
@@ -75,6 +77,10 @@ public final class InMemoryStore implements Store {
         defaultIvfIndex = new DefaultIVFIndex(segmentStore);
         logger.info("Finished initializing InMemoryStore from disk.");
 
+        logger.info("Creating HNSW index...");
+        hnswIndex = new HNSWIndex(segmentStore);
+        logger.info("Finished creating HNSW index.");
+
         logger.info("Building PQ centroids...");
         vectorProductQuantization.buildSubspaces();
         logger.info("Finished building PQ centroids.");
@@ -87,6 +93,7 @@ public final class InMemoryStore implements Store {
             // Insert into its segment and IVF index
             segmentStore.insertVector(vector);
             defaultIvfIndex.insertVector(vector);
+            hnswIndex.insertVector(vector);
 
             vectorProductQuantization.insertVector(vector);
             vectorProductQuantization.buildSubspaces();
