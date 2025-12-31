@@ -60,6 +60,13 @@ public final class SegmentStore {
                 .collect(Collectors.toList());
     }
 
+    public Stream<Vector> streamAllVectors() {
+        checkInitialized();
+        return Stream.concat(
+                segments.stream().flatMap(segment -> segment.getVectors().stream()),
+                currentSegment.getVectors().stream());
+    }
+
     public void createSegmentIfNotExists(int segmentId, boolean fromWAL) {
         boolean exists = segments.stream().anyMatch(segment -> segment.getId() == segmentId)
                 || currentSegment.getId() == segmentId;

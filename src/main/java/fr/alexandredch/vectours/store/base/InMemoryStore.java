@@ -12,8 +12,10 @@ import fr.alexandredch.vectours.store.Store;
 import fr.alexandredch.vectours.store.background.SegmentSaverTask;
 import fr.alexandredch.vectours.store.segment.SegmentStore;
 import fr.alexandredch.vectours.store.wal.WriteAheadLogger;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -135,12 +137,26 @@ public final class InMemoryStore implements Store {
                             v.id(), Vectors.squaredEuclidianDistance(v.values(), searchedVector), v.metadata()))
                     .toList();
         }
-        return segmentStore.getAllVectors().stream()
-                .map(v -> new SearchResult(
-                        v.id(), Vectors.squaredEuclidianDistance(v.values(), searchedVector), v.metadata()))
-                .sorted(Comparator.comparingDouble(SearchResult::distance))
-                .limit(searchParameters.topK())
-                .toList();
+
+        PriorityQueue<SearchResult> topK = new PriorityQueue<>(
+                searchParameters.topK(),
+                Comparator.comparingDouble(SearchResult::distance).reversed());
+
+        segmentStore.streamAllVectors().forEach(v -> {
+            double distance = Vectors.squaredEuclidianDistance(v.values(), searchedVector);
+            SearchResult result = new SearchResult(v.id(), distance, v.metadata());
+
+            if (topK.size() < searchParameters.topK()) {
+                topK.offer(result);
+            } else if (distance < topK.peek().distance()) {
+                topK.poll();
+                topK.offer(result);
+            }
+        });
+
+        List<SearchResult> results = new ArrayList<>(topK);
+        results.sort(Comparator.comparingDouble(SearchResult::distance));
+        return results;
     }
 
     @Override
