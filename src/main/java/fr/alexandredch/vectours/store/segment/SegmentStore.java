@@ -1,13 +1,9 @@
 package fr.alexandredch.vectours.store.segment;
 
 import fr.alexandredch.vectours.data.Vector;
-import fr.alexandredch.vectours.store.base.InMemoryStore;
 import fr.alexandredch.vectours.store.segment.tombstone.SegmentTombstoneStore;
 import fr.alexandredch.vectours.store.segment.vector.SegmentVectorStore;
 import fr.alexandredch.vectours.store.wal.WriteAheadLogger;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -15,6 +11,8 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class SegmentStore {
 

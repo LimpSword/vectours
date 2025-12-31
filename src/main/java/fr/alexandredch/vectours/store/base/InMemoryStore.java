@@ -149,10 +149,12 @@ public final class InMemoryStore implements Store {
         CompletableFuture<Void> walFuture = writeAheadLogger.applyOperation(new Operation.Delete(id));
 
         // Schedule index updates asynchronously (client doesn't wait for these)
-        walFuture.thenRunAsync(() -> {
-            // Delete from its segment
-            segmentStore.deleteVector(id);
-        }, indexUpdateExecutor);
+        walFuture.thenRunAsync(
+                () -> {
+                    // Delete from its segment
+                    segmentStore.deleteVector(id);
+                },
+                indexUpdateExecutor);
 
         // Client only waits for WAL write
         return walFuture;
