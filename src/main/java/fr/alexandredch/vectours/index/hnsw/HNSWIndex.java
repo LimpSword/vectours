@@ -93,7 +93,7 @@ public final class HNSWIndex {
     }
 
     private List<String> getNeighbors(Vector vector, List<String> entrypoints, int count, int layer) {
-        List<String> visited = new ArrayList<>();
+        Set<String> visited = new HashSet<>();
         Queue<VectorWithDistance> candidates =
                 new PriorityQueue<>(Comparator.comparingDouble(VectorWithDistance::distance));
         Queue<VectorWithDistance> results = new PriorityQueue<>(
