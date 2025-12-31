@@ -81,6 +81,9 @@ public final class HNSWIndex {
             List<String> selectedNeighbors = neighbors.subList(0, Math.min(M, neighbors.size()));
 
             for (String neighborId : selectedNeighbors) {
+                // Ensure neighbor exists in this layer (it might have been assigned to a lower layer)
+                layers.get(l).computeIfAbsent(neighborId, k -> new HashSet<>());
+
                 layers.get(l).get(neighborId).add(vector.id());
                 layers.get(l).get(vector.id()).add(neighborId);
 

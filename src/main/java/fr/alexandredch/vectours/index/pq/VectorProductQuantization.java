@@ -53,17 +53,16 @@ public final class VectorProductQuantization {
     }
 
     public void buildSubspaces() {
-        List<Vector> vectors = segmentStore.getAllVectors();
-
-        if (vectors.size() < MIN_VECTORS_FOR_PRODUCT_QUANTIZATION) {
+        if (segmentStore.getTotalVectorCount() < MIN_VECTORS_FOR_PRODUCT_QUANTIZATION) {
             logger.debug("Not enough vectors to build subspaces, skipping");
             return;
         }
         if (built) {
-            // Just insert the new vector
+            // Already built, just insert new vectors
             return;
         }
 
+        List<Vector> vectors = segmentStore.getAllVectors();
         logger.debug("Found {} vectors to build subspaces", vectors.size());
         codebooks = new double[subSpacesCount][centroidsPerSubSpaceCount][subvectorDim];
 
