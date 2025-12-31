@@ -1,9 +1,13 @@
 package fr.alexandredch.vectours.store.segment;
 
 import fr.alexandredch.vectours.data.Vector;
+import fr.alexandredch.vectours.store.base.InMemoryStore;
 import fr.alexandredch.vectours.store.segment.tombstone.SegmentTombstoneStore;
 import fr.alexandredch.vectours.store.segment.vector.SegmentVectorStore;
 import fr.alexandredch.vectours.store.wal.WriteAheadLogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,6 +22,8 @@ public final class SegmentStore {
     public static final String SEGMENT_FILE_PREFIX = "segment_";
     public static final String VECTORS_FILE = "vectors";
     public static final String TOMBSTONES_FILE = "tombstones";
+
+    private static final Logger logger = LoggerFactory.getLogger(SegmentStore.class);
 
     private final WriteAheadLogger writeAheadLogger;
     private final SegmentVectorStore segmentVectorStore;
@@ -140,12 +146,15 @@ public final class SegmentStore {
         // Load all segments from disk
         try {
             Path segmentsDir = Path.of(SEGMENTS_DIR);
+            logger.info("Loading segments from disk at {}...", segmentsDir.toAbsolutePath());
             if (Files.exists(segmentsDir) && Files.isDirectory(segmentsDir)) {
                 try (Stream<Path> stream = Files.list(segmentsDir)) {
                     stream.filter(Files::isDirectory).forEach(segmentDir -> {
                         int segmentId = Integer.parseInt(
                                 segmentDir.getFileName().toString().split("_")[1]);
                         Segment segment = new Segment(segmentId);
+
+                        logger.info("Loading segment {} from disk...", segmentId);
 
                         // Load vectors
                         Arrays.stream(segmentVectorStore.readSegmentVectorsFromDisk(segmentDir))

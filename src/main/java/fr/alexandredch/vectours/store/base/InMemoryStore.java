@@ -26,6 +26,7 @@ public final class InMemoryStore implements Store {
     private static final Logger logger = LoggerFactory.getLogger(InMemoryStore.class);
 
     private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+    private final ScheduledExecutorService indexUpdateExecutor = Executors.newScheduledThreadPool(1);
 
     private final WriteAheadLogger writeAheadLogger;
     private final SegmentStore segmentStore;
@@ -88,16 +89,24 @@ public final class InMemoryStore implements Store {
 
     @Override
     public CompletableFuture<Void> insert(Vector vector) {
-        // Append to WAL
-        return writeAheadLogger.applyOperation(new Operation.Insert(vector)).thenRun(() -> {
-            // Insert into its segment and IVF index
-            segmentStore.insertVector(vector);
-            defaultIvfIndex.insertVector(vector);
-            hnswIndex.insertVector(vector);
+        // Append to WAL and wait for durability
+        CompletableFuture<Void> walFuture = writeAheadLogger.applyOperation(new Operation.Insert(vector));
 
-            vectorProductQuantization.insertVector(vector);
-            vectorProductQuantization.buildSubspaces();
-        });
+        // Schedule index updates asynchronously (client doesn't wait for these)
+        walFuture.thenRunAsync(
+                () -> {
+                    // Insert into its segment and IVF index
+                    segmentStore.insertVector(vector);
+                    defaultIvfIndex.insertVector(vector);
+                    hnswIndex.insertVector(vector);
+
+                    vectorProductQuantization.insertVector(vector);
+                    vectorProductQuantization.buildSubspaces();
+                },
+                indexUpdateExecutor);
+
+        // Client only waits for WAL write
+        return walFuture;
     }
 
     @Override
@@ -136,11 +145,17 @@ public final class InMemoryStore implements Store {
 
     @Override
     public CompletableFuture<Void> delete(String id) {
-        // Append to WAL
-        return writeAheadLogger.applyOperation(new Operation.Delete(id)).thenRun(() -> {
+        // Append to WAL and wait for durability
+        CompletableFuture<Void> walFuture = writeAheadLogger.applyOperation(new Operation.Delete(id));
+
+        // Schedule index updates asynchronously (client doesn't wait for these)
+        walFuture.thenRunAsync(() -> {
             // Delete from its segment
             segmentStore.deleteVector(id);
-        });
+        }, indexUpdateExecutor);
+
+        // Client only waits for WAL write
+        return walFuture;
     }
 
     @Override
@@ -156,6 +171,15 @@ public final class InMemoryStore implements Store {
 
     public void shutdown() {
         scheduledExecutorService.shutdownNow();
+        indexUpdateExecutor.shutdown();
+        try {
+            if (!indexUpdateExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
+                indexUpdateExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            indexUpdateExecutor.shutdownNow();
+        }
         writeAheadLogger.shutdown();
     }
 

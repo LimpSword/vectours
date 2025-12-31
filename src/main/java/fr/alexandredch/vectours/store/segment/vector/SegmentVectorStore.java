@@ -1,6 +1,5 @@
 package fr.alexandredch.vectours.store.segment.vector;
 
-import com.google.common.primitives.Bytes;
 import fr.alexandredch.vectours.data.Vector;
 import fr.alexandredch.vectours.store.segment.Segment;
 import fr.alexandredch.vectours.store.segment.SegmentStore;
@@ -9,8 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class SegmentVectorStore {
-
-    public static final byte SEPARATOR_BYTES = '\u001D';
 
     private final VectorSerializer serializer = new VectorSerializer();
 
@@ -24,11 +21,14 @@ public final class SegmentVectorStore {
         }
 
         try (OutputStream outputStream = Files.newOutputStream(vectorsPath);
-                BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(outputStream)) {
+                BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(outputStream);
+                DataOutputStream dataOutputStream = new DataOutputStream(bufferedOutputStream)) {
 
             for (Vector vector : segment.getVectors()) {
                 byte[] serializedVector = serializer.encodeVector(vector);
-                bufferedOutputStream.write(Bytes.concat(serializedVector, new byte[] {SEPARATOR_BYTES}));
+                // Write length first, then the serialized vector
+                dataOutputStream.writeInt(serializedVector.length);
+                dataOutputStream.write(serializedVector);
             }
         } catch (IOException e) {
             throw new RuntimeException("Failed to write segment to disk", e);
@@ -46,25 +46,15 @@ public final class SegmentVectorStore {
 
         try (InputStream inputStream = Files.newInputStream(vectorsPath);
                 BufferedInputStream bufferedInputStream = new BufferedInputStream(inputStream);
-                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
+                DataInputStream dataInputStream = new DataInputStream(bufferedInputStream)) {
 
-            int b;
-            while ((b = bufferedInputStream.read()) != -1) {
-                if (b == SEPARATOR_BYTES) {
-                    byte[] vectorBytes = byteArrayOutputStream.toByteArray();
-                    if (vectorBytes.length > 0) {
-                        Vector vector = serializer.decodeVector(vectorBytes);
-                        vectors = appendVector(vectors, vector);
-                        byteArrayOutputStream.reset();
-                    }
-                } else {
-                    byteArrayOutputStream.write(b);
-                }
-            }
+            while (dataInputStream.available() > 0) {
+                // Read length first, then the serialized vector
+                int length = dataInputStream.readInt();
+                byte[] vectorBytes = new byte[length];
+                dataInputStream.readFully(vectorBytes);
 
-            // Handle last vector if file does not end with a newline
-            if (byteArrayOutputStream.size() > 0) {
-                Vector vector = serializer.decodeVector(byteArrayOutputStream.toByteArray());
+                Vector vector = serializer.decodeVector(vectorBytes);
                 vectors = appendVector(vectors, vector);
             }
 
